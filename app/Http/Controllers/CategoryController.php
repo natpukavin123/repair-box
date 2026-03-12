@@ -38,6 +38,18 @@ class CategoryController extends Controller
         return response()->json($category->load('subcategories'));
     }
 
+    public function subcategories(Category $category)
+    {
+        if (request()->ajax()) {
+            $data = $category->subcategories()
+                ->when(request('search'), fn($q, $s) => $q->where('name', 'like', "%{$s}%"))
+                ->orderBy('name')
+                ->paginate(request('per_page', 15));
+            return response()->json($data);
+        }
+        return view('modules.categories.subcategories', compact('category'));
+    }
+
     public function update(CategoryRequest $request, Category $category)
     {
         $category->update($request->validated());

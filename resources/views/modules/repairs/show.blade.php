@@ -138,6 +138,36 @@
 
         <!-- LEFT COLUMN (2/3) -->
         <div class="lg:col-span-2 space-y-5">
+            
+            <!-- ===== CLOSED - DOWNLOAD INVOICE ===== -->
+            <template x-if="repair.status === 'closed'">
+                <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold text-green-800">Repair Closed</p>
+                            <p class="text-sm text-green-600">This repair is complete and payment is settled.</p>
+                        </div>
+                    </div>
+                    <a :href="'/repairs/' + repair.id + '/invoice'" target="_blank" class="btn-primary !bg-green-600 hover:!bg-green-700 !border-0 shadow-sm inline-flex items-center gap-2 text-sm px-4 py-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Download Invoice
+                    </a>
+                </div>
+            </template>
+
+            <!-- TABS NAVIGATION -->
+            <div class="bg-white rounded-xl shadow-sm border border-b-0 rounded-b-none p-2 flex gap-1">
+                <button @click="activeTab = 'work'" class="px-5 py-2.5 rounded-lg text-sm font-semibold transition" :class="activeTab === 'work' ? 'bg-primary-50 text-primary-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'">Work Order</button>
+                <button @click="activeTab = 'history'" class="px-5 py-2.5 rounded-lg text-sm font-semibold transition" :class="activeTab === 'history' ? 'bg-primary-50 text-primary-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'">Status & History</button>
+            </div>
+
+            <div class="bg-white shadow-sm border border-t-0 rounded-b-xl min-h-[500px]">
+                
+                <!-- TAB 1: WORK ORDER -->
+                <div x-show="activeTab === 'work'" class="p-5 space-y-6">
 
             <!-- Info Cards -->
             <div class="bg-white rounded-xl shadow-sm border p-5">
@@ -215,14 +245,35 @@
                 </div>
             </template>
 
+            <!-- ===== SERVICE CHARGE (completed/payment only, not locked) ===== -->
+            <template x-if="['completed','payment'].includes(repair.status) && !repair.is_locked">
+                <div class="bg-white rounded-xl shadow-sm border-2 border-emerald-200 overflow-hidden mb-6">
+                    <div class="bg-emerald-50 px-5 py-3 border-b flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        <h3 class="font-semibold text-sm text-emerald-800">Additional Service Charge</h3>
+                    </div>
+                    <div class="p-4 bg-white">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <label class="text-sm font-medium text-gray-700">Enter Charge (₹):</label>
+                            <input x-model="serviceChargeInput" type="number" step="0.01" min="0" class="form-input-custom text-sm w-36" placeholder="0.00">
+                            <button @click="saveServiceCharge()" class="btn-primary text-sm whitespace-nowrap">Apply Charge</button>
+                            <span x-show="repair.service_charge > 0" class="text-xs text-green-600 font-medium flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Applied
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
             <!-- ===== PARTS (in_progress: editable, completed/payment/closed: read-only) ===== -->
             <template x-if="repair.status === 'in_progress'">
-                <div class="bg-white rounded-xl shadow-sm border">
-                    <div class="bg-amber-50 px-5 py-3 border-b flex items-center gap-2 rounded-t-xl">
-                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
-                        <h3 class="font-semibold text-sm text-amber-800">Parts Used</h3>
-                    </div>
-                    <div class="p-5">
+                <div>
+                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
+                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
+                        Parts Used
+                    </h3>
+                    <div class="bg-white border rounded-xl mb-6">
                         <!-- Existing Parts -->
                         <div x-show="(repair.parts || []).length > 0" class="mb-4">
                             <table class="w-full text-sm">
@@ -252,7 +303,7 @@
                             </table>
                         </div>
                         <!-- Add Part Form -->
-                        <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="bg-gray-50 rounded-b-xl p-4 mt-2">
                             <div class="relative mb-2">
                                 <input x-model="partSearch" @input.debounce.300ms="searchParts(1)" @focus="if(partResults.length === 0) searchParts(1)" @click.away="partResults = []" type="text" class="form-input-custom text-sm" placeholder="Search parts...">
                                 <div x-show="partResults.length > 0" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto" @scroll="handlePartScroll($event)">
@@ -283,9 +334,12 @@
 
             <!-- Parts Summary (read-only, completed/payment/closed/cancelled) -->
             <template x-if="['completed','payment','closed','cancelled'].includes(repair.status) && (repair.parts || []).length > 0">
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <div class="bg-gray-50 px-5 py-3 border-b"><h3 class="font-semibold text-sm text-gray-600">Parts Used</h3></div>
-                    <div class="p-5">
+                <div>
+                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
+                        Parts Used
+                    </h3>
+                    <div class="bg-white rounded-xl border overflow-hidden mb-6">
                         <table class="w-full text-sm">
                             <thead><tr class="text-xs text-gray-500 uppercase"><th class="text-left pb-2">Part</th><th class="text-center pb-2">Qty</th><th class="text-right pb-2">Price</th><th class="text-right pb-2">Total</th></tr></thead>
                             <tbody>
@@ -301,12 +355,12 @@
 
             <!-- ===== SERVICES (in_progress/completed/payment: editable) ===== -->
             <template x-if="['in_progress','completed','payment'].includes(repair.status) && !repair.is_locked">
-                <div class="bg-white rounded-xl shadow-sm border">
-                    <div class="bg-indigo-50 px-5 py-3 border-b flex items-center gap-2 rounded-t-xl">
-                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        <h3 class="font-semibold text-sm text-indigo-800">Services</h3>
-                    </div>
-                    <div class="p-5">
+                <div>
+                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Services
+                    </h3>
+                    <div class="bg-white border rounded-xl mb-6">
                         <!-- Existing Services List -->
                         <div x-show="(repair.repair_services || []).length > 0" class="mb-4">
                             <table class="w-full text-sm">
@@ -365,7 +419,7 @@
                             </table>
                         </div>
                         <!-- Add Service Form -->
-                        <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="bg-gray-50 rounded-b-xl p-4 mt-2">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                                 <!-- Service Type (auto-suggest + custom) -->
                                 <div class="relative">
@@ -420,9 +474,12 @@
 
             <!-- Services Summary (read-only, closed/cancelled) -->
             <template x-if="['closed','cancelled'].includes(repair.status) && (repair.repair_services || []).length > 0">
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <div class="bg-gray-50 px-5 py-3 border-b"><h3 class="font-semibold text-sm text-gray-600">Services</h3></div>
-                    <div class="p-5">
+                <div>
+                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Services
+                    </h3>
+                    <div class="bg-white border rounded-xl overflow-hidden mb-6">
                         <table class="w-full text-sm">
                             <thead><tr class="text-xs text-gray-500 uppercase"><th class="text-left pb-2">Service</th><th class="text-left pb-2">Vendor</th><th class="text-right pb-2">Charge</th><th class="text-center pb-2">Status</th></tr></thead>
                             <tbody>
@@ -448,157 +505,121 @@
                 </div>
             </template>
 
-            <!-- ===== SERVICE CHARGE (completed/payment only, not locked) ===== -->
-            <template x-if="['completed','payment'].includes(repair.status) && !repair.is_locked">
-                <div class="bg-white rounded-xl shadow-sm border-2 border-emerald-200 overflow-hidden">
-                    <div class="bg-emerald-50 px-5 py-3 border-b flex items-center gap-2">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                        <h3 class="font-semibold text-sm text-emerald-800">Service Charge</h3>
-                    </div>
-                    <div class="p-5">
-                        <div class="flex items-center gap-3">
-                            <label class="text-sm font-medium text-gray-700">Service Charge (₹):</label>
-                            <input x-model="serviceChargeInput" type="number" step="0.01" min="0" class="form-input-custom text-sm w-36" placeholder="0.00">
-                            <button @click="saveServiceCharge()" class="btn-primary text-sm">Save</button>
-                            <span x-show="repair.service_charge > 0" class="text-xs text-green-600 font-medium flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                Saved
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </template>
 
-            <!-- ===== INVOICE SUMMARY (completed/payment/closed/cancelled) ===== -->
-            <template x-if="['completed','payment','closed','cancelled'].includes(repair.status)">
-                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
-                    <h3 class="font-bold text-sm text-blue-800 mb-3 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
-                        Invoice Summary
-                    </h3>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <div class="text-[10px] uppercase text-gray-400 font-semibold">Parts</div>
-                            <div class="text-lg font-bold text-gray-800" x-text="'₹' + partsTotal().toFixed(2)"></div>
-                        </div>
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <div class="text-[10px] uppercase text-gray-400 font-semibold">Services</div>
-                            <div class="text-lg font-bold text-indigo-600" x-text="'₹' + servicesTotal().toFixed(2)"></div>
-                        </div>
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <div class="text-[10px] uppercase text-gray-400 font-semibold">Service Charge</div>
-                            <div class="text-lg font-bold text-gray-800" x-text="'₹' + Number(repair.service_charge || 0).toFixed(2)"></div>
-                        </div>
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <div class="text-[10px] uppercase text-gray-400 font-semibold">Grand Total</div>
-                            <div class="text-lg font-bold text-primary-600" x-text="'₹' + grandTotal().toFixed(2)"></div>
-                        </div>
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <div class="text-[10px] uppercase text-gray-400 font-semibold">Balance</div>
-                            <div class="text-lg font-bold" :class="balanceDue() > 0 ? 'text-red-600' : 'text-green-600'" x-text="'₹' + balanceDue().toFixed(2)"></div>
-                        </div>
-                    </div>
-                </div>
-            </template>
 
-            <!-- ===== PAYMENT COLLECTION (payment status) ===== -->
-            <template x-if="repair.status === 'payment'">
-                <div class="bg-white rounded-xl shadow-sm border-2 border-purple-200 overflow-hidden">
-                    <div class="bg-purple-50 px-5 py-3 border-b flex items-center gap-2">
-                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                        <h3 class="font-semibold text-sm text-purple-800">Payment Collection</h3>
-                    </div>
-                    <div class="p-5">
-                        <!-- Collect Payment -->
-                        <div x-show="balanceDue() > 0" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                            <div class="flex items-center gap-2 mb-3">
-                                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                <span class="font-bold text-yellow-800">Balance Due: <span x-text="'₹' + balanceDue().toFixed(2)"></span></span>
-                            </div>
-                            <div class="flex gap-2 items-end">
-                                <div class="flex-1">
-                                    <label class="text-xs text-gray-600 mb-1 block">Amount</label>
-                                    <input x-model="payForm.amount" type="number" step="0.01" class="form-input-custom text-sm" placeholder="Amount">
+
+
+
+                </div> <!-- End Work Tab -->
+
+                <!-- TAB 2: HISTORY -->
+                <div x-show="activeTab === 'history'" class="p-5" x-cloak>
+                    <!-- ===== STATUS HISTORY ===== -->
+                    <div class="relative">
+                        <div class="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                        <div class="space-y-4">
+                            <template x-for="sh in (repair.status_history || []).slice().reverse()" :key="sh.id">
+                                <div class="relative flex items-start gap-3 pl-8">
+                                    <div class="absolute left-1.5 top-1 w-3.5 h-3.5 rounded-full border-2 border-white" :class="statusDotBg(sh.status)"></div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold" x-text="statusLabel(sh.status)"></span>
+                                            <span class="text-xs text-gray-400" x-text="formatDateTime(sh.created_at)"></span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-0.5" x-show="sh.notes" x-text="sh.notes"></p>
+                                        <p class="text-xs text-gray-400" x-show="sh.updater" x-text="'by ' + (sh.updater?.name || '')"></p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="text-xs text-gray-600 mb-1 block">Method</label>
-                                    <select x-model="payForm.payment_method" class="form-select-custom text-sm w-28">
-                                        <option value="cash">Cash</option>
-                                        <option value="card">Card</option>
-                                        <option value="upi">UPI</option>
-                                        <option value="bank_transfer">Bank Transfer</option>
-                                    </select>
-                                </div>
-                                <button @click="collectPayment()" class="btn-success text-sm whitespace-nowrap px-4">Collect</button>
-                            </div>
-                        </div>
-                        <!-- Fully Paid -->
-                        <div x-show="balanceDue() <= 0 && grandTotal() > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                            <svg class="w-10 h-10 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <p class="font-bold text-green-700 text-lg">Fully Paid!</p>
-                            <p class="text-sm text-green-600">You can now close this repair and download the invoice.</p>
+                            </template>
                         </div>
                     </div>
-                </div>
-            </template>
+                </div> <!-- End History Tab -->
 
-            <!-- ===== CLOSED - DOWNLOAD INVOICE ===== -->
-            <template x-if="repair.status === 'closed'">
-                <div class="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
-                    <svg class="w-12 h-12 text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <p class="font-bold text-green-800 text-xl mb-1">Repair Closed</p>
-                    <p class="text-sm text-green-600 mb-4">This repair has been completed and payment is settled.</p>
-                    <a :href="'/repairs/' + repair.id + '/invoice'" target="_blank" class="btn-primary inline-flex items-center gap-2 text-base px-6 py-3">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Download Paid Invoice
-                    </a>
-                </div>
-            </template>
+            </div>
         </div>
 
         <!-- RIGHT COLUMN (1/3) -->
         <div class="space-y-5">
+            
+            <!-- ===== INVOICE SUMMARY (Always visible) ===== -->
+            <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-5 text-white sticky top-5">
+                <h3 class="font-bold text-sm text-gray-300 mb-4 flex items-center justify-between uppercase tracking-wider">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                        Financial Summary
+                    </span>
+                    <span class="text-xs bg-gray-700 px-2 py-1 rounded" x-text="repair.ticket_number"></span>
+                </h3>
+                
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center text-gray-300">
+                        <span>Parts</span>
+                        <span class="font-medium text-white" x-text="'₹' + partsTotal().toFixed(2)"></span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-300">
+                        <span>Services</span>
+                        <span class="font-medium text-white" x-text="'₹' + servicesTotal().toFixed(2)"></span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-300">
+                        <span>Service Charge</span>
+                        <span class="font-medium text-white" x-text="'₹' + Number(repair.service_charge || 0).toFixed(2)"></span>
+                    </div>
+                    <div class="pt-3 border-t border-gray-600 flex justify-between items-center font-bold text-base">
+                        <span>Grand Total</span>
+                        <span class="text-blue-400" x-text="'₹' + grandTotal().toFixed(2)"></span>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-gray-600 flex justify-between items-center font-bold text-lg">
+                        <span>Balance Due</span>
+                        <span :class="balanceDue() > 0 ? 'text-red-400' : 'text-green-400'" x-text="'₹' + balanceDue().toFixed(2)"></span>
+                    </div>
 
-            <!-- ===== PAYMENT HISTORY ===== -->
-            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div class="bg-gray-50 px-4 py-3 border-b"><h3 class="font-semibold text-sm text-gray-600">Payments</h3></div>
-                <div class="p-4">
-                    <template x-if="(repair.payments || []).length > 0">
-                        <div class="space-y-0">
-                            <template x-for="p in repair.payments" :key="p.id">
-                                <div class="flex items-center justify-between text-sm py-2.5 border-b last:border-0">
-                                    <div>
-                                        <span class="font-medium capitalize" x-text="p.payment_type"></span>
-                                        <span class="text-gray-400 text-xs">via</span>
-                                        <span class="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full" :class="{'bg-green-100 text-green-700': p.payment_method === 'cash', 'bg-blue-100 text-blue-700': p.payment_method === 'upi', 'bg-purple-100 text-purple-700': p.payment_method === 'card', 'bg-gray-100 text-gray-700': p.payment_method === 'bank_transfer'}">
-                                            <template x-if="p.payment_method === 'cash'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></template>
-                                            <template x-if="p.payment_method === 'upi'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></template>
-                                            <template x-if="p.payment_method === 'card'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg></template>
-                                            <template x-if="p.payment_method === 'bank_transfer'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></template>
-                                            <span x-text="p.payment_method === 'bank_transfer' ? 'Bank' : (p.payment_method || '').toUpperCase()"></span>
-                                        </span>
-                                        <div class="text-[10px] text-gray-400 mt-0.5" x-text="formatDate(p.created_at)"></div>
+                    <!-- ===== PAYMENT COLLECTION (payment status) ===== -->
+                    <template x-if="repair.status === 'payment' && balanceDue() > 0">
+                        <div class="mt-4 pt-4 border-t border-gray-600">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex gap-2">
+                                    <div class="flex-1">
+                                        <label class="text-xs text-gray-400 mb-1 block">Amount (₹)</label>
+                                        <input x-model="payForm.amount" type="number" step="0.01" class="w-full px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-inner placeholder-gray-400" placeholder="0.00">
                                     </div>
-                                    <div class="font-semibold" :class="p.direction === 'OUT' ? 'text-red-600' : 'text-green-600'" x-text="(p.direction === 'OUT' ? '-' : '+') + '₹' + Number(p.amount).toFixed(2)"></div>
+                                    <div class="w-24">
+                                        <label class="text-xs text-gray-400 mb-1 block">Method</label>
+                                        <select x-model="payForm.payment_method" class="w-full px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-inner">
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Card</option>
+                                            <option value="upi">UPI</option>
+                                            <option value="bank">Bank</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </template>
-                            <div class="pt-3 mt-2 border-t flex items-center justify-between text-sm font-bold">
-                                <span>Net Paid</span>
-                                <span class="text-primary-600" x-text="'₹' + (totalPaid() - totalRefunded()).toFixed(2)"></span>
+                                <button @click="collectPayment()" class="w-full btn-success py-2 font-bold shadow-sm">Process Payment</button>
                             </div>
                         </div>
                     </template>
-                    <template x-if="(repair.payments || []).length === 0">
-                        <p class="text-sm text-gray-400 text-center py-4">No payments yet</p>
+                    
+                    <template x-if="repair.status === 'payment' && balanceDue() <= 0 && grandTotal() > 0">
+                        <div class="mt-4 pt-4 border-t border-gray-600 text-center">
+                            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white mb-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                            <p class="font-bold text-green-400">Fully Paid!</p>
+                            <p class="text-xs text-gray-400 mt-1">Ready to be closed.</p>
+                        </div>
                     </template>
                 </div>
             </div>
 
-            <!-- ===== MORE ACTIONS ===== -->
+            <!-- ===== ACTIONS CONTAINER ===== -->
             <template x-if="repair.record_type !== 'void' && repair.status !== 'cancelled'">
                 <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <div class="bg-gray-50 px-4 py-3 border-b"><h3 class="font-semibold text-sm text-gray-600">Actions</h3></div>
+                    <div class="bg-gray-50 px-4 py-3 border-b"><h3 class="font-semibold text-sm text-gray-600">Admin Actions</h3></div>
                     <div class="p-4 space-y-2">
+                        <!-- Return Button moved here from header -->
+                        <a x-show="repair.is_fully_paid && repair.has_returnable_items" :href="'/repairs/' + repair.id + '/returns/create'" class="w-full inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border-2 border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 transition justify-center">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                            Process Return
+                        </a>
                         <template x-if="!repair.is_locked && repair.status !== 'cancelled'">
                             <button @click="showCancelRefund = true" class="w-full inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border-2 border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
@@ -669,31 +690,38 @@
                 </div>
             </template>
 
-            <!-- ===== STATUS HISTORY ===== -->
+            <!-- ===== PAYMENT HISTORY ===== -->
             <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div class="bg-gray-50 px-4 py-3 border-b flex items-center gap-2">
-                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <h3 class="font-semibold text-sm text-gray-600">Status History</h3>
-                </div>
+                <div class="bg-gray-50 px-4 py-3 border-b"><h3 class="font-semibold text-sm text-gray-600">Payments</h3></div>
                 <div class="p-4">
-                    <div class="relative">
-                        <div class="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                        <div class="space-y-4">
-                            <template x-for="sh in (repair.status_history || []).slice().reverse()" :key="sh.id">
-                                <div class="relative flex items-start gap-3 pl-8">
-                                    <div class="absolute left-1.5 top-1 w-3.5 h-3.5 rounded-full border-2 border-white" :class="statusDotBg(sh.status)"></div>
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-semibold" x-text="statusLabel(sh.status)"></span>
-                                            <span class="text-xs text-gray-400" x-text="formatDateTime(sh.created_at)"></span>
-                                        </div>
-                                        <p class="text-xs text-gray-500 mt-0.5" x-show="sh.notes" x-text="sh.notes"></p>
-                                        <p class="text-xs text-gray-400" x-show="sh.updater" x-text="'by ' + (sh.updater?.name || '')"></p>
+                    <template x-if="(repair.payments || []).length > 0">
+                        <div class="space-y-0">
+                            <template x-for="p in repair.payments" :key="p.id">
+                                <div class="flex items-center justify-between text-sm py-2.5 border-b last:border-0">
+                                    <div>
+                                        <span class="font-medium capitalize" x-text="p.payment_type"></span>
+                                        <span class="text-gray-400 text-xs">via</span>
+                                        <span class="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full" :class="{'bg-green-100 text-green-700': p.payment_method === 'cash', 'bg-blue-100 text-blue-700': p.payment_method === 'upi', 'bg-purple-100 text-purple-700': p.payment_method === 'card', 'bg-gray-100 text-gray-700': p.payment_method === 'bank_transfer'}">
+                                            <template x-if="p.payment_method === 'cash'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></template>
+                                            <template x-if="p.payment_method === 'upi'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></template>
+                                            <template x-if="p.payment_method === 'card'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg></template>
+                                            <template x-if="p.payment_method === 'bank_transfer'"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></template>
+                                            <span x-text="p.payment_method === 'bank_transfer' ? 'Bank' : (p.payment_method || '').toUpperCase()"></span>
+                                        </span>
+                                        <div class="text-[10px] text-gray-400 mt-0.5" x-text="formatDate(p.created_at)"></div>
                                     </div>
+                                    <div class="font-semibold" :class="p.direction === 'OUT' ? 'text-red-600' : 'text-green-600'" x-text="(p.direction === 'OUT' ? '-' : '+') + '₹' + Number(p.amount).toFixed(2)"></div>
                                 </div>
                             </template>
+                            <div class="pt-3 mt-2 border-t flex items-center justify-between text-sm font-bold">
+                                <span>Net Paid</span>
+                                <span class="text-primary-600" x-text="'₹' + (totalPaid() - totalRefunded()).toFixed(2)"></span>
+                            </div>
                         </div>
-                    </div>
+                    </template>
+                    <template x-if="(repair.payments || []).length === 0">
+                        <p class="text-sm text-gray-400 text-center py-4">No payments yet</p>
+                    </template>
                 </div>
             </div>
         </div>
@@ -816,6 +844,7 @@ function repairDetail() {
     return {
         repair: @json($repair),
         statusMeta: @json($statusMeta),
+        activeTab: 'work',
 
         // Progress steps
         progressSteps: [

@@ -20,36 +20,15 @@
                                 <td class="font-medium" x-text="item.name"></td>
                                 <td class="text-gray-500 text-sm" x-text="item.description || '-'"></td>
                                 <td>
-                                    <div class="flex flex-wrap items-center gap-1.5">
-                                        <template x-for="sub in (item.subcategories || [])" :key="sub.id">
-                                            <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded-md">
-                                                <span x-text="sub.name"></span>
-                                                <button @click.stop="editSub(item, sub)" class="text-gray-400 hover:text-primary-600 transition-colors" title="Edit">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                                </button>
-                                                <button @click.stop="removeSub(sub)" class="text-gray-400 hover:text-red-600 transition-colors" title="Delete">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                </button>
+                                    <div class="flex items-center gap-2">
+                                        <template x-if="(item.subcategories || []).length > 0">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                                                <span x-text="item.subcategories.length + ' subcategories'"></span>
                                             </span>
                                         </template>
-                                        <!-- Inline add subcategory -->
-                                        <template x-if="addingSubFor !== item.id">
-                                            <button @click.stop="startAddSub(item)" class="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 hover:bg-primary-50 px-2 py-1 rounded-md transition-colors" title="Add subcategory">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                                <span>Add</span>
-                                            </button>
-                                        </template>
-                                        <template x-if="addingSubFor === item.id">
-                                            <div class="inline-flex items-center gap-1" @click.stop>
-                                                <input x-model="newSubName" @keydown.enter="saveSub(item)" @keydown.escape="addingSubFor = null" x-ref="subInput" type="text" placeholder="Name..." class="text-xs border border-gray-300 rounded-md px-2 py-1 w-28 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
-                                                <button @click="saveSub(item)" class="p-1 text-green-600 hover:text-green-800" :disabled="savingSub" title="Save">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                                </button>
-                                                <button @click="addingSubFor = null" class="p-1 text-gray-400 hover:text-gray-600" title="Cancel">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                </button>
-                                            </div>
-                                        </template>
+                                        <a :href="'/categories/' + item.id + '/subcategories'" class="inline-flex items-center justify-center w-6 h-6 rounded-md text-primary-600 hover:text-white hover:bg-primary-600 bg-primary-50 transition-colors" title="Manage Subcategories">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        </a>
                                     </div>
                                 </td>
                                 <td class="whitespace-nowrap">

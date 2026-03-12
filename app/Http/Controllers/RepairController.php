@@ -188,6 +188,17 @@ class RepairController extends Controller
         $data['direction'] = $data['direction'] ?? ($data['payment_type'] === 'refund' ? 'OUT' : 'IN');
 
         $service->addPayment($repair, $data);
+
+        // Auto-close repair if fully paid
+        $repair->refresh();
+        if ($repair->status === 'payment' && $repair->is_fully_paid) {
+            try {
+                $service->updateStatus($repair, 'closed', 'Auto-closed upon full payment');
+            } catch (\Exception $e) {
+                // Ignore transition errors if it somehow fails, payment was still recorded
+            }
+        }
+
         return response()->json(['success' => true, 'message' => 'Payment recorded']);
     }
 

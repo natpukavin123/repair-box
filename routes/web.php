@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function () {
 
     // Master Data
     Route::resource('categories', CategoryController::class)->except(['edit']);
+    Route::get('categories/{category}/subcategories', [CategoryController::class, 'subcategories'])->name('categories.subcategories');
     Route::resource('subcategories', SubcategoryController::class)->except(['edit', 'show']);
     Route::get('subcategories/by-category/{category}', [SubcategoryController::class, 'byCategory']);
     Route::resource('brands', BrandController::class)->except(['edit', 'show']);

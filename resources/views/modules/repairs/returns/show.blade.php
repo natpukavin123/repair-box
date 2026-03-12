@@ -66,6 +66,69 @@
     </div>
     @endif
 
+    <!-- ===== REFUND SECTION (ACTION REQUIRED) ===== -->
+    @if($return->status !== 'refunded')
+    <div class="bg-white rounded-xl border shadow-sm mb-6">
+        <div class="px-5 py-4 border-b">
+            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                Process Refund
+            </h3>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Refund Amount (₹) *</label>
+                    <input type="number" step="0.01" min="0.01" max="{{ $return->total_return_amount }}"
+                        x-model.number="refundForm.refund_amount"
+                        class="w-full border rounded-lg px-3 py-2 text-sm font-bold text-red-600 bg-red-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Refund Method *</label>
+                    <select x-model="refundForm.refund_method" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <option value="cash">Cash</option>
+                        <option value="upi">UPI</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="card">Card</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Reference / Transaction ID</label>
+                    <input type="text" x-model="refundForm.refund_reference" placeholder="e.g. UPI Ref, NEFT #" class="w-full border rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+                    <input type="text" x-model="refundForm.refund_notes" placeholder="Additional notes..." class="w-full border rounded-lg px-3 py-2 text-sm">
+                </div>
+            </div>
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-gray-500">Refund will be recorded as an OUT payment on the original repair.</p>
+                <button @click="processRefund()" :disabled="saving || !refundForm.refund_amount"
+                    class="btn-primary text-sm px-6 py-2.5 disabled:opacity-40">
+                    <span x-show="!saving">Process Refund</span>
+                    <span x-show="saving">Processing...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @else
+    <!-- Refund Completed Banner -->
+    <div class="bg-green-50 border border-green-200 rounded-xl p-5 mb-6">
+        <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+                <h4 class="font-bold text-green-800 text-lg">Refund Completed Check</h4>
+                <div class="text-sm text-green-700 mt-1 space-y-0.5">
+                    <p>Amount: <strong>₹{{ number_format($return->refund_amount, 2) }}</strong> via <strong>{{ ucfirst(str_replace('_', ' ', $return->refund_method)) }}</strong></p>
+                    @if($return->refund_reference)<p>Reference: <strong>{{ $return->refund_reference }}</strong></p>@endif
+                    @if($return->refund_notes)<p>Notes: {{ $return->refund_notes }}</p>@endif
+                    <p>Refunded on: {{ $return->refunded_at->format('d M Y, h:i A') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- ===== INFO CARDS ===== -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
         <!-- Return Info -->
@@ -90,17 +153,12 @@
         </div>
 
         <!-- Financial Summary -->
-        <div class="bg-white rounded-xl border shadow-sm p-5">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Financial Summary</h3>
+        <div class="bg-white rounded-xl border shadow-sm p-5 border-l-4 border-l-red-500">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Total Return</h3>
             <div class="space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-gray-500">Return Amount</span><span class="font-bold text-red-600">₹{{ number_format($return->total_return_amount, 2) }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Return Amount</span><span class="text-xl font-bold text-red-600">₹{{ number_format($return->total_return_amount, 2) }}</span></div>
                 @if($return->status === 'refunded')
-                <div class="flex justify-between"><span class="text-gray-500">Refunded</span><span class="font-bold text-green-600">₹{{ number_format($return->refund_amount, 2) }}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Method</span><span class="font-medium">{{ ucfirst(str_replace('_', ' ', $return->refund_method)) }}</span></div>
-                @if($return->refund_reference)
-                <div class="flex justify-between"><span class="text-gray-500">Reference</span><span class="font-medium">{{ $return->refund_reference }}</span></div>
-                @endif
-                <div class="flex justify-between"><span class="text-gray-500">Refunded At</span><span class="font-medium">{{ $return->refunded_at->format('d M Y, h:i A') }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="font-bold text-green-600">Refunded</span></div>
                 @else
                 <div class="mt-2 text-xs text-amber-600 font-semibold">⚠ Refund pending</div>
                 @endif
@@ -189,68 +247,7 @@
         </div>
     </div>
 
-    <!-- ===== REFUND SECTION ===== -->
-    @if($return->status !== 'refunded')
-    <div class="bg-white rounded-xl border shadow-sm mb-6">
-        <div class="px-5 py-4 border-b">
-            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide flex items-center gap-2">
-                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                Process Refund
-            </h3>
-        </div>
-        <div class="p-5">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Refund Amount (₹) *</label>
-                    <input type="number" step="0.01" min="0.01" max="{{ $return->total_return_amount }}"
-                        x-model.number="refundForm.refund_amount"
-                        class="w-full border rounded-lg px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Refund Method *</label>
-                    <select x-model="refundForm.refund_method" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="cash">Cash</option>
-                        <option value="upi">UPI</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="card">Card</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Reference / Transaction ID</label>
-                    <input type="text" x-model="refundForm.refund_reference" placeholder="e.g. UPI Ref, NEFT #" class="w-full border rounded-lg px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
-                    <input type="text" x-model="refundForm.refund_notes" placeholder="Additional notes..." class="w-full border rounded-lg px-3 py-2 text-sm">
-                </div>
-            </div>
-            <div class="flex items-center justify-between">
-                <p class="text-xs text-gray-500">Refund will be recorded as an OUT payment on the original repair.</p>
-                <button @click="processRefund()" :disabled="saving || !refundForm.refund_amount"
-                    class="btn-primary text-sm px-6 py-2.5 disabled:opacity-40">
-                    <span x-show="!saving">Process Refund</span>
-                    <span x-show="saving">Processing...</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    @else
-    <!-- Refund Completed Banner -->
-    <div class="bg-green-50 border border-green-200 rounded-xl p-5 mb-6">
-        <div class="flex items-start gap-3">
-            <svg class="w-6 h-6 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <div>
-                <h4 class="font-bold text-green-800">Refund Completed</h4>
-                <div class="text-sm text-green-700 mt-1 space-y-0.5">
-                    <p>Amount: <strong>₹{{ number_format($return->refund_amount, 2) }}</strong> via <strong>{{ ucfirst(str_replace('_', ' ', $return->refund_method)) }}</strong></p>
-                    @if($return->refund_reference)<p>Reference: <strong>{{ $return->refund_reference }}</strong></p>@endif
-                    @if($return->refund_notes)<p>Notes: {{ $return->refund_notes }}</p>@endif
-                    <p>Refunded on: {{ $return->refunded_at->format('d M Y, h:i A') }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
+
 
 </div>
 @endsection
