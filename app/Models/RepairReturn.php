@@ -10,6 +10,7 @@ class RepairReturn extends Model
         'return_number', 'repair_id', 'customer_id', 'reason',
         'total_return_amount', 'refund_amount', 'refund_method',
         'refund_reference', 'refund_notes', 'status', 'refunded_at', 'created_by',
+        'credit_note_id',
     ];
 
     protected $casts = [
@@ -36,6 +37,11 @@ class RepairReturn extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function creditNote()
+    {
+        return $this->belongsTo(CreditNote::class);
     }
 
     public static function generateReturnNumber(): string

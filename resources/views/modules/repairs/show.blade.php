@@ -96,9 +96,9 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                     Invoice
                 </a>
-                <a x-show="repair.is_fully_paid && repair.has_returnable_items" :href="'/repairs/' + repair.id + '/returns/create'" class="btn-secondary text-sm inline-flex items-center gap-1.5 !border-orange-300 !text-orange-700 hover:!bg-orange-50">
+                <a x-show="(repair.repair_returns || []).length > 0" @click.prevent="document.getElementById('returns-section')?.scrollIntoView({behavior:'smooth'})" href="#returns-section" class="btn-secondary text-sm inline-flex items-center gap-1.5 !border-orange-300 !text-orange-700 hover:!bg-orange-50">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                    Return
+                    Returns
                 </a>
             </div>
         </div>
@@ -650,6 +650,14 @@
                                 <span>Return Items</span>
                             </a>
                         </div>
+                        <div x-show="(repair.repair_returns || []).length > 0" class="border-t border-gray-200 pt-3">
+                            <label class="text-xs font-bold text-gray-600 uppercase block mb-2.5">Returns</label>
+                            <a @click.prevent="document.getElementById('returns-section')?.scrollIntoView({behavior:'smooth'})" href="#returns-section" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                                <span>View Returns</span>
+                                <span class="ml-auto text-xs font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full" x-text="(repair.repair_returns || []).length"></span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -721,7 +729,7 @@
                         <!-- Net Total Paid -->
                         <div class="flex justify-between items-center text-sm pt-1 border-t border-gray-100">
                             <span class="text-gray-700 font-semibold">Total Paid</span>
-                            <span class="font-bold text-indigo-600" x-text="'₹' + (totalPaid() - totalRefunded()).toFixed(2)"></span>
+                            <span class="font-bold text-indigo-600" x-text="'₹' + totalPaid().toFixed(2)"></span>
                         </div>
                         <div class="flex justify-between items-center text-sm" x-show="totalRefunded() > 0">
                             <span class="text-gray-600">Amount Refunded</span>
@@ -824,7 +832,7 @@
 
             <!-- ===== RETURNS ===== -->
             <template x-if="(repair.repair_returns || []).length > 0">
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div id="returns-section" class="bg-white rounded-xl shadow-sm border overflow-hidden">
                     <div class="bg-orange-50 px-4 py-3 border-b flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
@@ -1331,7 +1339,7 @@ function repairDetail() {
         totalRefunded() { return (this.repair.payments || []).filter(p => p.direction === 'OUT').reduce((s, p) => s + Number(p.amount), 0); },
         advancePaid() { return (this.repair.payments || []).filter(p => p.direction === 'IN' && p.payment_type === 'advance').reduce((s, p) => s + Number(p.amount), 0); },
         finalPaid() { return (this.repair.payments || []).filter(p => p.direction === 'IN' && p.payment_type !== 'advance').reduce((s, p) => s + Number(p.amount), 0); },
-        balanceDue() { return Math.max(0, this.grandTotal() - this.totalPaid() + this.totalRefunded()); },
+        balanceDue() { return Math.max(0, this.grandTotal() - this.totalPaid()); },
     };
 }
 </script>

@@ -8,13 +8,14 @@ class Invoice extends Model
 {
     protected $fillable = [
         'invoice_number', 'customer_id', 'total_amount', 'discount',
-        'final_amount', 'payment_status', 'created_by',
+        'final_amount', 'payment_status', 'is_locked', 'created_by',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
         'discount' => 'decimal:2',
         'final_amount' => 'decimal:2',
+        'is_locked' => 'boolean',
     ];
 
     public function customer()
@@ -35,6 +36,21 @@ class Invoice extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function creditNotes()
+    {
+        return $this->hasMany(CreditNote::class, 'source_id')->where('source_type', 'invoice');
+    }
+
+    public function isLocked(): bool
+    {
+        return (bool) $this->is_locked;
+    }
+
+    public function lock(): void
+    {
+        $this->update(['is_locked' => true]);
     }
 
     public static function generateInvoiceNumber(): string

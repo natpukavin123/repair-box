@@ -64,7 +64,7 @@ class InvoiceService
 
             // Update payment status
             if ($totalPaid >= $finalAmount) {
-                $invoice->update(['payment_status' => 'paid']);
+                $invoice->update(['payment_status' => 'paid', 'is_locked' => true]);
             } elseif ($totalPaid > 0) {
                 $invoice->update(['payment_status' => 'partial']);
             }

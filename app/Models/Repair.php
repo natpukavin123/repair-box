@@ -161,7 +161,7 @@ class Repair extends Model
 
     public function getBalanceDueAttribute(): float
     {
-        return max(0, $this->grand_total - $this->net_paid);
+        return max(0, $this->grand_total - $this->total_paid);
     }
 
     public function getIsFullyPaidAttribute(): bool

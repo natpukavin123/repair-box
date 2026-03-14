@@ -409,7 +409,7 @@ class RepairController extends Controller
 
     public function print(Repair $repair)
     {
-        $repair->load('customer', 'technician', 'parts.part', 'payments', 'statusHistory');
+        $repair->load('customer', 'technician', 'parts.part', 'payments', 'repairServices', 'statusHistory');
         return view('modules.repairs.print', compact('repair'));
     }
 

@@ -7,7 +7,8 @@ use App\Http\Controllers\{
     PurchaseController, InvoiceController, RepairController, CustomerController,
     RechargeController, ServiceController, ExpenseController, LedgerController,
     ReturnController, UserController, SettingController, ReportController,
-    PartController, RepairReturnController, RoleController, MenuController
+    PartController, RepairReturnController, RoleController, MenuController,
+    CreditNoteController
 };
 
 // Auth
@@ -72,7 +73,6 @@ Route::middleware('auth')->group(function () {
     Route::get('repairs/{repair}/returns/create', [RepairReturnController::class, 'create'])->name('repair-returns.create');
     Route::post('repairs/{repair}/returns', [RepairReturnController::class, 'store'])->name('repair-returns.store');
     Route::get('repairs/{repair}/returns/{return}', [RepairReturnController::class, 'show'])->name('repair-returns.show');
-    Route::post('repairs/{repair}/returns/{return}/refund', [RepairReturnController::class, 'processRefund'])->name('repair-returns.refund');
     Route::get('repairs/{repair}/returns/{return}/invoice', [RepairReturnController::class, 'invoice'])->name('repair-returns.invoice');
 
     // Customers
@@ -111,6 +111,18 @@ Route::middleware('auth')->group(function () {
     // Menu Management
     Route::resource('menus', MenuController::class)->except(['edit', 'show', 'create']);
     Route::post('menus/reorder', [MenuController::class, 'reorder']);
+
+    // Credit Notes
+    Route::get('credit-notes', [CreditNoteController::class, 'index'])->name('credit-notes.index');
+    Route::get('credit-notes/from-invoice/{invoice}', [CreditNoteController::class, 'createFromInvoice']);
+    Route::get('credit-notes/from-repair/{repair}', [CreditNoteController::class, 'createFromRepair']);
+    Route::post('credit-notes', [CreditNoteController::class, 'store']);
+    Route::get('credit-notes/{creditNote}', [CreditNoteController::class, 'show']);
+    Route::post('credit-notes/{creditNote}/approve', [CreditNoteController::class, 'approve']);
+    Route::post('credit-notes/{creditNote}/refund', [CreditNoteController::class, 'processRefund']);
+    Route::post('credit-notes/{creditNote}/apply-repair', [CreditNoteController::class, 'applyToRepair']);
+    Route::post('credit-notes/{creditNote}/apply-invoice', [CreditNoteController::class, 'applyToInvoice']);
+    Route::post('credit-notes/{creditNote}/cancel', [CreditNoteController::class, 'cancel']);
 
     // Reports
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');

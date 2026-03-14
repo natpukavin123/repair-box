@@ -1,126 +1,246 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Invoice #{{ $invoice->invoice_number }}</title>
-    @php
-        $invoicePaperSize = \App\Models\Setting::getValue('invoice_paper_size', '80mm auto');
-        $invoiceDesignVariant = \App\Models\Setting::getValue('invoice_design_variant', 'default');
-        $invoiceHeaderTitle = \App\Models\Setting::getValue('invoice_header_title', \App\Models\Setting::getValue('shop_name', 'RepairBox'));
-        $invoiceHeaderSubtitle = \App\Models\Setting::getValue('invoice_header_subtitle', \App\Models\Setting::getValue('shop_address', 'Mobile Shop Management'));
-        $invoiceFooterText = \App\Models\Setting::getValue('invoice_footer_text', \App\Models\Setting::getValue('shop_phone', 'Thank you for your business!'));
-        $shopIcon = \App\Models\Setting::getValue('shop_icon', '');
-        $shopName = \App\Models\Setting::getValue('shop_name', 'RepairBox');
-        $shopAddress = \App\Models\Setting::getValue('shop_address', 'Your shop address');
-        $shopPhone = \App\Models\Setting::getValue('shop_phone', 'your-phone');
-        $shopEmail = \App\Models\Setting::getValue('shop_email', 'your-email');
-    @endphp
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        @php
-            $isA4 = str_starts_with(strtoupper($invoicePaperSize), 'A4');
-            $isA5 = str_starts_with(strtoupper($invoicePaperSize), 'A5');
-        @endphp
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-size: 12px;
-            color: #222;
-            margin: 0;
-            padding: 0;
-            background: #f9fafb;
+@extends('layouts.invoice')
+@section('title', 'Sales Invoice – ' . $invoice->invoice_number)
+@section('invoice-title', 'Sales Invoice')
+
+@php
+    if (!function_exists('numWords')) {
+        function numWords(float $n): string {
+            $o=['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN','ELEVEN',
+                'TWELVE','THIRTEEN','FOURTEEN','FIFTEEN','SIXTEEN','SEVENTEEN','EIGHTEEN','NINETEEN'];
+            $t=['','','TWENTY','THIRTY','FORTY','FIFTY','SIXTY','SEVENTY','EIGHTY','NINETY'];
+            $c=function(int $x)use($o,$t,&$c):string{
+                if($x<20)  return $o[$x];
+                if($x<100) return $t[(int)($x/10)].($x%10?' '.$o[$x%10]:'');
+                if($x<1000)return $o[(int)($x/100)].' HUNDRED'.($x%100?' '.$c($x%100):'');
+                if($x<100000)   return $c((int)($x/1000)).' THOUSAND'.($x%1000?' '.$c($x%1000):'');
+                if($x<10000000) return $c((int)($x/100000)).' LAKH'.($x%100000?' '.$c($x%100000):'');
+                return $c((int)($x/10000000)).' CRORE'.($x%10000000?' '.$c($x%10000000):'');
+            };
+            return $c((int)$n).' RUPEES ONLY';
         }
-        .invoice-wrapper {
-            margin: 10mm auto;
-            padding: {{ $isA4 ? '18mm 20mm 20mm' : ($isA5 ? '12mm 14mm 14mm' : '16px') }};
-            max-width: {{ $isA4 ? '180mm' : ($isA5 ? '138mm' : '76mm') }};
-            width: 100%;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-        }
-        @page { margin: 5mm; size: {{ $invoicePaperSize }}; }
-        .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 10px; }
-        .header h1 { font-size: 18px; font-weight: bold; }
-        .header p { font-size: 10px; color: #666; }
-        .info { margin-bottom: 10px; }
-        .info div { display: flex; justify-content: space-between; padding: 1px 0; }
-        .info span.label { color: #666; }
-        table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-        th { text-align: left; border-bottom: 1px solid #333; padding: 3px 0; font-size: 11px; }
-        td { padding: 3px 0; font-size: 11px; }
-        td:last-child, th:last-child { text-align: right; }
-        .totals { border-top: 1px dashed #333; padding-top: 5px; }
-        .totals div { display: flex; justify-content: space-between; padding: 2px 0; }
-        .totals .grand { font-size: 16px; font-weight: bold; border-top: 2px solid #333; padding-top: 5px; margin-top: 5px; }
-        .footer { text-align: center; border-top: 2px dashed #333; padding-top: 10px; margin-top: 15px; font-size: 10px; color: #666; }
-        .payments { margin-top: 8px; font-size: 10px; }
-        @if($invoiceDesignVariant === 'modern')
-        .header { border-bottom: 2px solid #1d4ed8; background: #eff6ff; }
-        .header h1 { color: #1d4ed8; }
-        .totals .grand { color: #065f46; }
-        @elseif($invoiceDesignVariant === 'minimal')
-        .header { border-bottom: 1px solid #ccc; background: transparent; }
-        .header h1 { font-size: 16px; color: #111; }
-        .totals .grand { color: #111; }
-        @endif
-        @media print { body { padding: 0; } @page { margin: 5mm; size: {{ $invoicePaperSize }}; } }
-    </style>
-</head>
-<body>
-    <div class="invoice-wrapper">
-        <div class="header">
-            @if($shopIcon)
-                <div style="margin-bottom: 8px; display: flex; justify-content: center;">
-                    <img src="{{ asset('storage/' . $shopIcon) }}" style="height: 40px; object-fit: contain;">
-                </div>
-            @endif
-            <h1>{{ $invoiceHeaderTitle }}</h1>
-            <p>{{ $shopAddress }}</p>
-            <p>{{ $shopPhone }} | {{ $shopEmail }}</p>
+    }
+
+    $shopName  = \App\Models\Setting::getValue('shop_name', 'RepairBox');
+    $shopUpiId = \App\Models\Setting::getValue('upi_id', '');
+
+    $igstRate = 0; $cgstRate = 0; $sgstRate = 0;
+
+    $customerGstin   = $invoice->customer->gstin   ?? '-';
+    $customerAddress = $invoice->customer->address ?? '-';
+
+    $lineItems = collect();
+    foreach ($invoice->items as $item) {
+        $tax = $igstRate > 0 ? round($item->price * $item->quantity * $igstRate / 100, 2) : 0;
+        $lineItems->push([
+            'name'    => $item->item_name,
+            'sub'     => $item->serial_number ?? null,
+            'hsn'     => $item->hsn_code ?? '',
+            'qty'     => $item->quantity,
+            'rate'    => $item->price,
+            'taxable' => $item->price * $item->quantity,
+            'igst'    => $tax,
+            'total'   => $item->price * $item->quantity + $tax,
+        ]);
+    }
+
+    $taxableAmount = $lineItems->sum('taxable');
+    $igstAmount    = $lineItems->sum('igst');
+    $cgstAmount    = $cgstRate > 0 ? round($taxableAmount * $cgstRate / 100, 2) : 0;
+    $sgstAmount    = $sgstRate > 0 ? round($taxableAmount * $sgstRate / 100, 2) : 0;
+    $totalTax      = $igstAmount + $cgstAmount + $sgstAmount;
+    $subTotal      = $taxableAmount + $totalTax;
+    $discount      = $invoice->discount ?? 0;
+    $grandTotal    = $subTotal - $discount;
+    $totalQty      = $lineItems->sum('qty');
+    $totalPaidIn   = $invoice->payments->sum('amount');
+    $balanceDue    = max(0, $grandTotal - $totalPaidIn);
+
+    $amountInWords = numWords($grandTotal);
+    $showIgst      = $igstRate > 0;
+    $showCgstSgst  = !$showIgst && ($cgstRate > 0 || $sgstRate > 0);
+@endphp
+
+@section('invoice-content')
+    {{-- ══ INFO GRID ══ --}}
+    <div class="info-grid">
+        <div class="info-col">
+            <div class="col-hdr">Customer Detail</div>
+            <div class="col-body">
+                @if($invoice->customer)
+                <div class="irow"><span class="lb">Name</span><span class="vl">{{ $invoice->customer->name }}</span></div>
+                <div class="irow"><span class="lb">Address</span><span class="vl">{{ $customerAddress }}</span></div>
+                <div class="irow"><span class="lb">Phone</span><span class="vl">{{ $invoice->customer->mobile_number ?? '-' }}</span></div>
+                @if($customerGstin !== '-')
+                <div class="irow"><span class="lb">GSTIN</span><span class="vl">{{ $customerGstin }}</span></div>
+                @endif
+                @else
+                <div class="irow"><span class="lb">Name</span><span class="vl">Walk-in Customer</span></div>
+                @endif
+            </div>
         </div>
 
-    <div class="info">
-        <div><span class="label">Store:</span><span>{{ $shopName }}</span></div>
-        <div><span class="label">Invoice:</span><span>{{ $invoice->invoice_number }}</span></div>
-        <div><span class="label">Date:</span><span>{{ $invoice->created_at->format('d/m/Y h:i A') }}</span></div>
-        @if($invoice->customer)<div><span class="label">Customer:</span><span>{{ $invoice->customer->name }}</span></div>@endif
+        <div class="info-col" style="max-width:215px;">
+            <div class="col-hdr">Invoice Detail</div>
+            <div class="col-body">
+                <div class="irow"><span class="lb">Invoice No.</span><span class="vl inv-num">{{ $invoice->invoice_number }}</span></div>
+                <div style="height:6px;"></div>
+                <div class="irow"><span class="lb">Invoice Date</span><span class="vl">{{ $invoice->created_at->format('d M Y') }}</span></div>
+                <div class="irow"><span class="lb">Due Date</span><span class="vl">{{ $invoice->due_date ? $invoice->due_date->format('d M Y') : '-' }}</span></div>
+            </div>
+        </div>
     </div>
 
-    <table>
-        <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-        <tbody>
-            @foreach($invoice->items as $item)
-            <tr>
-                <td>{{ $item->item_name }}</td>
-                <td>{{ $item->quantity }}</td>
-                <td>₹{{ number_format($item->price, 2) }}</td>
-                <td>₹{{ number_format($item->total, 2) }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+    {{-- ══ ITEMS TABLE ══ --}}
+    <div class="tbl-wrap">
+        <table class="items">
+            <thead>
+                <tr>
+                    <th style="width:26px;">Sr.</th>
+                    <th class="tl">Name of Product / Service</th>
+                    <th style="width:44px;">HSN/<br>SAC</th>
+                    <th style="width:52px;">Qty</th>
+                    <th style="width:78px;">Rate (₹)</th>
+                    <th style="width:82px;">Taxable Value</th>
+                    @if($showIgst)
+                        <th colspan="2" style="width:100px;">IGST</th>
+                    @elseif($showCgstSgst)
+                        <th colspan="2">CGST</th>
+                        <th colspan="2">SGST</th>
+                    @endif
+                    <th style="width:82px;">Total (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($lineItems as $idx => $item)
+                <tr>
+                    <td class="tc">{{ $idx + 1 }}</td>
+                    <td>
+                        <strong>{{ $item['name'] }}</strong>
+                        @if($item['sub'])<div class="item-sub">S/N {{ $item['sub'] }}</div>@endif
+                    </td>
+                    <td class="tc">{{ $item['hsn'] }}</td>
+                    <td class="tc">{{ number_format($item['qty']) }} NOS</td>
+                    <td class="tr">{{ number_format($item['rate'], 2) }}</td>
+                    <td class="tr">{{ number_format($item['taxable'], 2) }}</td>
+                    @if($showIgst)
+                        <td class="tc">{{ $igstRate }}.00</td>
+                        <td class="tr">{{ number_format($item['igst'], 2) }}</td>
+                    @elseif($showCgstSgst)
+                        <td class="tc">{{ $cgstRate }}.00</td>
+                        <td class="tr">{{ number_format(round($item['taxable']*$cgstRate/100,2),2) }}</td>
+                        <td class="tc">{{ $sgstRate }}.00</td>
+                        <td class="tr">{{ number_format(round($item['taxable']*$sgstRate/100,2),2) }}</td>
+                    @endif
+                    <td class="tr"><strong>{{ number_format($item['total'], 2) }}</strong></td>
+                </tr>
+                @endforeach
 
-    <div class="totals">
-        <div><span>Subtotal:</span><span>₹{{ number_format($invoice->sub_total, 2) }}</span></div>
-        @if($invoice->discount > 0)<div><span>Discount:</span><span>-₹{{ number_format($invoice->discount, 2) }}</span></div>@endif
-        <div class="grand"><span>Total:</span><span>₹{{ number_format($invoice->total_amount, 2) }}</span></div>
+                @for($e=0; $e < max(0, 5-$lineItems->count()); $e++)
+                <tr style="height:26px;">
+                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                    @if($showIgst)<td></td><td></td>
+                    @elseif($showCgstSgst)<td></td><td></td><td></td><td></td>
+                    @endif
+                    <td></td>
+                </tr>
+                @endfor
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" style="text-align:right;letter-spacing:1px;">TOTAL</td>
+                    <td class="tc">{{ number_format($totalQty) }}</td>
+                    <td></td>
+                    <td>{{ number_format($taxableAmount, 2) }}</td>
+                    @if($showIgst)
+                        <td></td><td>{{ number_format($igstAmount,2) }}</td>
+                    @elseif($showCgstSgst)
+                        <td></td><td>{{ number_format($cgstAmount,2) }}</td>
+                        <td></td><td>{{ number_format($sgstAmount,2) }}</td>
+                    @endif
+                    <td>{{ number_format($lineItems->sum('total'),2) }}</td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
 
-    <div class="payments">
-        <strong>Payments:</strong>
-        @foreach($invoice->payments as $pay)
-        <div>{{ ucfirst($pay->payment_method) }}: ₹{{ number_format($pay->amount, 2) }} {{ $pay->transaction_reference ? '('.$pay->transaction_reference.')' : '' }}</div>
-        @endforeach
+    {{-- ══ BOTTOM SECTION ══ --}}
+    <div class="bottom">
+        <div class="b-left">
+            <div class="s-hdr">Amount in Words</div>
+            <div class="s-body">
+                <div class="words-box">{{ $amountInWords }}</div>
+            </div>
+
+            @if($invoice->payments->count())
+            <div class="s-hdr mt4">Payments Received</div>
+            <div class="s-body">
+                @foreach($invoice->payments as $pay)
+                <div class="pay-item">
+                    <span>{{ ucfirst($pay->payment_method) }}</span>
+                    <span class="p-in">+₹{{ number_format($pay->amount,2) }}</span>
+                </div>
+                @endforeach
+            </div>
+            @endif
+
+            @if($shopUpiId)
+            <div class="s-body mt4">
+                <div class="qr-area">
+                    <div class="qr-box">QR<br>CODE</div>
+                    <div class="qr-meta">
+                        <div class="qr-upi">{{ $shopUpiId }}</div>
+                        <div class="qr-scan">Scan to pay via any UPI app</div>
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+
+        <div class="b-right">
+            <div class="s-hdr">Tax Summary</div>
+            <table class="tax-tbl">
+                <tr><td>Taxable Amount</td><td>{{ number_format($taxableAmount,2) }}</td></tr>
+                @if($igstAmount>0)
+                <tr><td>Add : IGST ({{ $igstRate }}%)</td><td>{{ number_format($igstAmount,2) }}</td></tr>
+                @endif
+                @if($cgstAmount>0)
+                <tr><td>Add : CGST ({{ $cgstRate }}%)</td><td>{{ number_format($cgstAmount,2) }}</td></tr>
+                @endif
+                @if($sgstAmount>0)
+                <tr><td>Add : SGST ({{ $sgstRate }}%)</td><td>{{ number_format($sgstAmount,2) }}</td></tr>
+                @endif
+                <tr class="sep"><td>Total Tax</td><td>{{ number_format($totalTax,2) }}</td></tr>
+                @if($totalTax==0)
+                <tr class="note"><td colspan="2">* Tax rates not configured yet</td></tr>
+                @endif
+                @if($discount > 0)
+                <tr><td>Sub Total</td><td>{{ number_format($subTotal,2) }}</td></tr>
+                <tr style="color:#c0392b;"><td>Discount</td><td>-{{ number_format($discount,2) }}</td></tr>
+                @endif
+                <tr class="grand"><td>Grand Total</td><td>₹{{ number_format($grandTotal,2) }}</td></tr>
+                <tr class="note"><td colspan="2">&nbsp;(E &amp; O.E.)</td></tr>
+
+                @if($totalPaidIn > 0)
+                <tr class="sep green"><td>Total Paid</td><td>₹{{ number_format($totalPaidIn,2) }}</td></tr>
+                @if($balanceDue > 0)
+                <tr class="bal"><td>Balance Due</td><td>₹{{ number_format($balanceDue,2) }}</td></tr>
+                @else
+                <tr class="full"><td colspan="2">✓ &nbsp;PAID IN FULL</td></tr>
+                @endif
+                @endif
+            </table>
+
+            <div class="sign-box">
+                <div class="sign-cert">Certified that the particulars given above are true and correct.</div>
+                <div class="sign-for">For {{ $shopName }}</div>
+                <div class="sign-line"></div>
+                <div class="sign-auth">Authorised Signatory</div>
+            </div>
+        </div>
     </div>
+@endsection
 
-    <div class="footer">
-        <p>{{ $invoiceFooterText }}</p>
-        <p>Terms & Conditions Apply</p>
-    </div>
-
-    </div> <!-- .invoice-wrapper -->
-
-    <script>window.onload = function() { window.print(); }</script>
-</body>
-</html>
+@section('footer-extra')
+    <strong>Invoice:</strong> {{ $invoice->invoice_number }}
+    &nbsp;|&nbsp;
+@endsection

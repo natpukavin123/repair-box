@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Repair, RepairReturn, RepairReturnItem, LedgerTransaction, ActivityLog};
+use App\Models\{Repair, RepairReturn, RepairReturnItem, CreditNote, CreditNoteItem, LedgerTransaction, ActivityLog};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -133,11 +133,36 @@ class RepairReturnController extends Controller
                 $return->items()->create($ri);
             }
 
-            // Return parts to stock
-            foreach ($return->items()->where('item_type', 'part')->get() as $returnItem) {
-                // Note: In this system, Parts are distinct from Inventory Products.
-                // We do not create StockMovements or update Inventory for Parts.
+            // Auto-create Credit Note (approved status)
+            $cn = CreditNote::create([
+                'credit_note_number' => CreditNote::generateCreditNoteNumber(),
+                'source_type' => 'repair',
+                'source_id' => $repair->id,
+                'customer_id' => $repair->customer_id,
+                'total_amount' => $totalReturnAmount,
+                'reason' => $data['reason'],
+                'notes' => "Auto-created from return {$return->return_number}",
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+                'created_by' => auth()->id(),
+            ]);
+
+            // Create credit note items from return items
+            foreach ($returnItems as $ri) {
+                CreditNoteItem::create([
+                    'credit_note_id' => $cn->id,
+                    'item_type' => $ri['item_type'],
+                    'item_name' => $ri['item_name'],
+                    'quantity' => $ri['quantity'],
+                    'unit_price' => $ri['unit_price'],
+                    'total' => $ri['return_amount'],
+                    'original_item_id' => $ri['repair_part_id'] ?? $ri['repair_service_id'] ?? null,
+                ]);
             }
+
+            // Link the credit note to the return
+            $return->update(['credit_note_id' => $cn->id]);
 
             ActivityLog::log(
                 'create',
@@ -146,9 +171,16 @@ class RepairReturnController extends Controller
                 "Created return {$return->return_number} for repair {$repair->ticket_number} — ₹" . number_format($totalReturnAmount, 2)
             );
 
+            ActivityLog::log(
+                'create',
+                'credit_notes',
+                $cn->id,
+                "Auto-created credit note {$cn->credit_note_number} from return {$return->return_number} — ₹" . number_format($totalReturnAmount, 2)
+            );
+
             return response()->json([
                 'success' => true,
-                'message' => "Return {$return->return_number} created successfully",
+                'message' => "Return {$return->return_number} created. Credit Note {$cn->credit_note_number} generated.",
                 'redirect' => "/repairs/{$repair->id}/returns/{$return->id}",
             ]);
         });
@@ -159,89 +191,10 @@ class RepairReturnController extends Controller
         if ($return->repair_id !== $repair->id)
             abort(404);
 
-        $return->load('items.repairPart.part', 'items.repairService', 'customer', 'creator');
+        $return->load('items.repairPart.part', 'items.repairService', 'customer', 'creator', 'creditNote');
         $repair->load('customer', 'parts.part', 'repairServices', 'payments', 'repairReturns.items');
 
-        // Calculate already returned quantities across ALL returns
-        $returnedParts = [];
-        $returnedServices = [];
-        foreach ($repair->repairReturns as $ret) {
-            foreach ($ret->items as $item) {
-                if ($item->item_type === 'part' && $item->repair_part_id) {
-                    $returnedParts[$item->repair_part_id] = ($returnedParts[$item->repair_part_id] ?? 0) + $item->quantity;
-                }
-                if ($item->item_type === 'service' && $item->repair_service_id) {
-                    $returnedServices[$item->repair_service_id] = true;
-                }
-            }
-        }
-
-        $hasReturnableParts = $repair->parts->contains(fn($rp) => $rp->quantity - ($returnedParts[$rp->id] ?? 0) > 0);
-        $hasReturnableServices = $repair->repairServices->contains(fn($svc) => !isset($returnedServices[$svc->id]));
-        $hasReturnableItems = $hasReturnableParts || $hasReturnableServices;
-
-        return view('modules.repairs.returns.show', compact('repair', 'return', 'hasReturnableItems'));
-    }
-
-    public function processRefund(Request $request, Repair $repair, RepairReturn $return)
-    {
-        if ($return->repair_id !== $repair->id)
-            abort(404);
-
-        if ($return->status === 'refunded') {
-            return response()->json(['success' => false, 'message' => 'This return has already been refunded.'], 422);
-        }
-
-        $data = $request->validate([
-            'refund_amount' => 'required|numeric|min:0.01|max:' . $return->total_return_amount,
-            'refund_method' => 'required|string|in:cash,upi,bank_transfer,card',
-            'refund_reference' => 'nullable|string|max:100',
-            'refund_notes' => 'nullable|string|max:500',
-        ]);
-
-        return DB::transaction(function () use ($repair, $return, $data) {
-            $return->update([
-                'refund_amount' => $data['refund_amount'],
-                'refund_method' => $data['refund_method'],
-                'refund_reference' => $data['refund_reference'] ?? null,
-                'refund_notes' => $data['refund_notes'] ?? null,
-                'status' => 'refunded',
-                'refunded_at' => now(),
-            ]);
-
-            // Record as OUT payment on the repair
-            $repair->payments()->create([
-                'payment_type' => 'refund',
-                'amount' => $data['refund_amount'],
-                'payment_method' => $data['refund_method'],
-                'reference_number' => $data['refund_reference'] ?? null,
-                'direction' => 'OUT',
-                'notes' => "Return refund ({$return->return_number}): " . ($data['refund_notes'] ?? ''),
-            ]);
-
-            LedgerTransaction::create([
-                'transaction_type' => 'repair',
-                'reference_module' => 'repair_returns',
-                'reference_id' => $return->id,
-                'amount' => $data['refund_amount'],
-                'payment_method' => $data['refund_method'],
-                'direction' => 'OUT',
-                'description' => "Refund for return {$return->return_number} against repair {$repair->ticket_number}",
-                'created_by' => auth()->id(),
-            ]);
-
-            ActivityLog::log(
-                'update',
-                'repair_returns',
-                $return->id,
-                "Refund processed for {$return->return_number} — ₹" . number_format($data['refund_amount'], 2) . " via {$data['refund_method']}"
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Refund of ₹' . number_format($data['refund_amount'], 2) . ' processed successfully',
-            ]);
-        });
+        return view('modules.repairs.returns.show', compact('repair', 'return'));
     }
 
     public function invoice(Repair $repair, RepairReturn $return)
@@ -249,29 +202,9 @@ class RepairReturnController extends Controller
         if ($return->repair_id !== $repair->id)
             abort(404);
 
-        $return->load('items.repairPart.part', 'items.repairService', 'customer', 'creator');
-        $repair->load('customer', 'parts.part', 'repairServices', 'repairReturns.items');
+        $return->load('items.repairPart.part', 'items.repairService', 'customer', 'creator', 'creditNote');
+        $repair->load('customer', 'parts.part', 'repairServices');
 
-        // Total already returned across all returns for this repair
-        $totalAlreadyReturned = $repair->repairReturns->sum('total_return_amount');
-
-        // Check if more items can still be returned
-        $returnedParts = [];
-        $returnedServices = [];
-        foreach ($repair->repairReturns as $ret) {
-            foreach ($ret->items as $item) {
-                if ($item->item_type === 'part' && $item->repair_part_id) {
-                    $returnedParts[$item->repair_part_id] = ($returnedParts[$item->repair_part_id] ?? 0) + $item->quantity;
-                }
-                if ($item->item_type === 'service' && $item->repair_service_id) {
-                    $returnedServices[$item->repair_service_id] = true;
-                }
-            }
-        }
-        $hasReturnableParts = $repair->parts->contains(fn($rp) => $rp->quantity - ($returnedParts[$rp->id] ?? 0) > 0);
-        $hasReturnableServices = $repair->repairServices->contains(fn($svc) => !isset($returnedServices[$svc->id]));
-        $hasReturnableItems = $hasReturnableParts || $hasReturnableServices;
-
-        return view('modules.repairs.returns.invoice', compact('repair', 'return', 'hasReturnableItems', 'totalAlreadyReturned'));
+        return view('modules.repairs.returns.invoice', compact('repair', 'return'));
     }
 }

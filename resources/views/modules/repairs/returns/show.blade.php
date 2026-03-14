@@ -2,7 +2,7 @@
 @section('page-title', 'Return ' . $return->return_number)
 
 @section('content')
-<div x-data="returnDetail()" x-init="init()">
+<div>
 
     <!-- Breadcrumb -->
     <div class="mb-5">
@@ -26,16 +26,33 @@
                 <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">{{ ucfirst($return->status) }}</span>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
+                <a href="/repairs/{{ $repair->id }}/returns/{{ $return->id }}/invoice" target="_blank" class="btn-secondary text-sm inline-flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Print Return
+                </a>
+                @php
+                    $returnedParts = [];
+                    $returnedServices = [];
+                    foreach ($repair->repairReturns as $ret) {
+                        foreach ($ret->items as $item) {
+                            if ($item->item_type === 'part' && $item->repair_part_id) {
+                                $returnedParts[$item->repair_part_id] = ($returnedParts[$item->repair_part_id] ?? 0) + $item->quantity;
+                            }
+                            if ($item->item_type === 'service' && $item->repair_service_id) {
+                                $returnedServices[$item->repair_service_id] = true;
+                            }
+                        }
+                    }
+                    $hasReturnableParts = $repair->parts->contains(fn($rp) => $rp->quantity - ($returnedParts[$rp->id] ?? 0) > 0);
+                    $hasReturnableServices = $repair->repairServices->contains(fn($svc) => !isset($returnedServices[$svc->id]));
+                    $hasReturnableItems = $hasReturnableParts || $hasReturnableServices;
+                @endphp
                 @if($hasReturnableItems)
-                <a href="/repairs/{{ $repair->id }}/returns/create" class="btn-primary text-sm inline-flex items-center gap-1.5 !bg-orange-500 !border-orange-500 hover:!bg-orange-600">
+                <a href="/repairs/{{ $repair->id }}/returns/create" class="btn-secondary text-sm inline-flex items-center gap-1.5 !border-orange-300 !text-orange-700 hover:!bg-orange-50">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                     Return More Items
                 </a>
                 @endif
-                <a href="/repairs/{{ $repair->id }}/returns/{{ $return->id }}/invoice" target="_blank" class="btn-secondary text-sm inline-flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                    Print Credit Note
-                </a>
                 <a href="/repairs/{{ $repair->id }}" class="btn-secondary text-sm inline-flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     Back to Repair
@@ -44,87 +61,37 @@
         </div>
     </div>
 
-    <!-- ===== RETURN MORE ITEMS BANNER ===== -->
-    @if($hasReturnableItems)
-    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-5 flex items-center gap-3">
-        <svg class="w-6 h-6 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <div class="flex-1">
-            <p class="text-sm font-semibold text-orange-800">Partial Return — Some parts / services are still eligible for return.</p>
-            <p class="text-xs text-orange-600 mt-0.5">You can create another return for the remaining items on this repair.</p>
-        </div>
-        <a href="/repairs/{{ $repair->id }}/returns/create" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-            Return More Items
-        </a>
-    </div>
-    @else
-    <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-5 flex items-center gap-3">
-        <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <div>
-            <p class="text-sm font-semibold text-green-800">Fully Returned — All parts and services have been returned for this repair.</p>
-        </div>
-    </div>
-    @endif
-
-    <!-- ===== REFUND SECTION (ACTION REQUIRED) ===== -->
-    @if($return->status !== 'refunded')
-    <div class="bg-white rounded-xl border shadow-sm mb-6">
-        <div class="px-5 py-4 border-b">
-            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide flex items-center gap-2">
-                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                Process Refund
-            </h3>
-        </div>
-        <div class="p-5">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Refund Amount (₹) *</label>
-                    <input type="number" step="0.01" min="0.01" max="{{ $return->total_return_amount }}"
-                        x-model.number="refundForm.refund_amount"
-                        class="w-full border rounded-lg px-3 py-2 text-sm font-bold text-red-600 bg-red-50">
+    <!-- ===== CREDIT NOTE LINK ===== -->
+    @if($return->creditNote)
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Refund Method *</label>
-                    <select x-model="refundForm.refund_method" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="cash">Cash</option>
-                        <option value="upi">UPI</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="card">Card</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Reference / Transaction ID</label>
-                    <input type="text" x-model="refundForm.refund_reference" placeholder="e.g. UPI Ref, NEFT #" class="w-full border rounded-lg px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
-                    <input type="text" x-model="refundForm.refund_notes" placeholder="Additional notes..." class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <h4 class="font-bold text-blue-800 text-base">Credit Note {{ $return->creditNote->credit_note_number }}</h4>
+                    <p class="text-sm text-blue-600">
+                        Amount: <strong>₹{{ number_format($return->creditNote->total_amount, 2) }}</strong>
+                        &bull; Status:
+                        @php
+                            $cnStatusClass = match($return->creditNote->status) {
+                                'draft' => 'text-gray-600',
+                                'approved' => 'text-blue-600',
+                                'partially_refunded' => 'text-amber-600',
+                                'fully_refunded' => 'text-green-600',
+                                'cancelled' => 'text-red-600',
+                                default => 'text-gray-600',
+                            };
+                        @endphp
+                        <strong class="{{ $cnStatusClass }}">{{ ucwords(str_replace('_', ' ', $return->creditNote->status)) }}</strong>
+                    </p>
                 </div>
             </div>
-            <div class="flex items-center justify-between">
-                <p class="text-xs text-gray-500">Refund will be recorded as an OUT payment on the original repair.</p>
-                <button @click="processRefund()" :disabled="saving || !refundForm.refund_amount"
-                    class="btn-primary text-sm px-6 py-2.5 disabled:opacity-40">
-                    <span x-show="!saving">Process Refund</span>
-                    <span x-show="saving">Processing...</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    @else
-    <!-- Refund Completed Banner -->
-    <div class="bg-green-50 border border-green-200 rounded-xl p-5 mb-6">
-        <div class="flex items-start gap-3">
-            <svg class="w-6 h-6 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <div>
-                <h4 class="font-bold text-green-800 text-lg">Refund Completed Check</h4>
-                <div class="text-sm text-green-700 mt-1 space-y-0.5">
-                    <p>Amount: <strong>₹{{ number_format($return->refund_amount, 2) }}</strong> via <strong>{{ ucfirst(str_replace('_', ' ', $return->refund_method)) }}</strong></p>
-                    @if($return->refund_reference)<p>Reference: <strong>{{ $return->refund_reference }}</strong></p>@endif
-                    @if($return->refund_notes)<p>Notes: {{ $return->refund_notes }}</p>@endif
-                    <p>Refunded on: {{ $return->refunded_at->format('d M Y, h:i A') }}</p>
-                </div>
-            </div>
+            <a href="/credit-notes/{{ $return->creditNote->id }}" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                View Credit Note
+            </a>
         </div>
     </div>
     @endif
@@ -157,50 +124,18 @@
             <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Total Return</h3>
             <div class="space-y-2 text-sm">
                 <div class="flex justify-between"><span class="text-gray-500">Return Amount</span><span class="text-xl font-bold text-red-600">₹{{ number_format($return->total_return_amount, 2) }}</span></div>
-                @if($return->status === 'refunded')
-                <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="font-bold text-green-600">Refunded</span></div>
-                @else
-                <div class="mt-2 text-xs text-amber-600 font-semibold">⚠ Refund pending</div>
+                @if($return->creditNote)
+                    @if($return->creditNote->status === 'fully_refunded')
+                    <div class="flex justify-between"><span class="text-gray-500">Resolution</span><span class="font-bold text-green-600">Fully Resolved</span></div>
+                    @elseif($return->creditNote->refunded_amount > 0)
+                    <div class="flex justify-between"><span class="text-gray-500">Resolved</span><span class="font-semibold text-amber-600">₹{{ number_format($return->creditNote->refunded_amount, 2) }}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Remaining</span><span class="font-semibold text-red-600">₹{{ number_format($return->creditNote->remainingRefundable(), 2) }}</span></div>
+                    @else
+                    <div class="mt-2 text-xs text-amber-600 font-semibold">⚠ Pending resolution via Credit Note</div>
+                    @endif
                 @endif
             </div>
         </div>
-    </div>
-
-    <!-- ===== ORIGINAL REPAIR SUMMARY ===== -->
-    @php
-        $repairPartsTotal    = $repair->parts->sum(fn($rp) => $rp->cost_price * $rp->quantity);
-        $repairServicesTotal = $repair->repairServices->sum('customer_charge');
-        $repairGrandTotal    = $repairPartsTotal + $repairServicesTotal + ($repair->service_charge ?? 0);
-        $allReturnsTotal     = $repair->repairReturns->sum('total_return_amount');
-    @endphp
-    <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-6">
-        <h3 class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-3 flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
-            Original Repair Invoice — {{ $repair->ticket_number }}
-        </h3>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white rounded-lg px-4 py-3 text-center">
-                <div class="text-[10px] uppercase text-gray-400 font-semibold mb-0.5">Parts</div>
-                <div class="text-base font-bold text-gray-800">₹{{ number_format($repairPartsTotal, 2) }}</div>
-            </div>
-            <div class="bg-white rounded-lg px-4 py-3 text-center">
-                <div class="text-[10px] uppercase text-gray-400 font-semibold mb-0.5">Services</div>
-                <div class="text-base font-bold text-indigo-600">₹{{ number_format($repairServicesTotal, 2) }}</div>
-            </div>
-            <div class="bg-white rounded-lg px-4 py-3 text-center">
-                <div class="text-[10px] uppercase text-gray-400 font-semibold mb-0.5">Grand Total</div>
-                <div class="text-base font-bold text-primary-600">₹{{ number_format($repairGrandTotal, 2) }}</div>
-            </div>
-            <div class="bg-white rounded-lg px-4 py-3 text-center">
-                <div class="text-[10px] uppercase text-gray-400 font-semibold mb-0.5">Total Returned</div>
-                <div class="text-base font-bold text-red-600">₹{{ number_format($allReturnsTotal, 2) }}</div>
-            </div>
-        </div>
-        @if($repair->repairReturns->count() > 1)
-        <div class="mt-3 text-xs text-blue-500 font-medium">
-            {{ $repair->repairReturns->count() }} return(s) processed against this repair.
-        </div>
-        @endif
     </div>
 
     <!-- ===== RETURNED ITEMS ===== -->
@@ -247,38 +182,5 @@
         </div>
     </div>
 
-
-
 </div>
 @endsection
-
-@push('scripts')
-<script>
-function returnDetail() {
-    return {
-        saving: false,
-        refundForm: {
-            refund_amount: {{ $return->total_return_amount }},
-            refund_method: 'cash',
-            refund_reference: '',
-            refund_notes: '',
-        },
-
-        init() {},
-
-        async processRefund() {
-            if (!this.refundForm.refund_amount || this.refundForm.refund_amount <= 0) {
-                return RepairBox.toast('Enter a valid refund amount', 'error');
-            }
-
-            this.saving = true;
-            const r = await RepairBox.ajax('/repairs/{{ $repair->id }}/returns/{{ $return->id }}/refund', 'POST', this.refundForm);
-            this.saving = false;
-            if (r.data?.success !== false) {
-                window.location.reload();
-            }
-        },
-    };
-}
-</script>
-@endpush
