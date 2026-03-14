@@ -10,7 +10,8 @@ class UserRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('user');
+        $user = $this->route('user');
+        $id = $user instanceof \App\Models\User ? $user->id : $user;
         $rules = [
             'name' => 'required|string|max:255',
             'email' => "required|email|max:255|unique:users,email,{$id}",

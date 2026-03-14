@@ -2,7 +2,7 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
-<div x-data="dashboardPage()" x-init="loadStats()">
+<div x-data="dashboardPage()">
     <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="stat-card">
@@ -168,16 +168,58 @@
 <script>
 function dashboardPage() {
     return {
-        stats: { today_sales: 0, monthly_sales: 0, today_repairs: 0, pending_repairs: 0, monthly_expenses: 0, monthly_purchases: 0, today_recharges: 0, monthly_revenue: 0, monthly_outflow: 0, recent_invoices: [], recent_repairs: [], sales_chart: { labels: [], data: [] } },
-        formatCurrency(val) { return '₹' + Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }); },
+        stats: {
+            today_sales: 0,
+            monthly_sales: 0,
+            today_repairs: 0,
+            pending_repairs: 0,
+            monthly_expenses: 0,
+            monthly_purchases: 0,
+            today_recharges: 0,
+            monthly_revenue: 0,
+            monthly_outflow: 0,
+            recent_invoices: [],
+            recent_repairs: [],
+            sales_chart: { labels: [], data: [] }
+        },
+
+        async init() {
+            try {
+                const res = await RepairBox.ajax('/dashboard');
+                if (!res || res.success === false) return;
+                this.stats = {
+                    today_sales:       res.today_sales       ?? 0,
+                    monthly_sales:     res.monthly_sales     ?? 0,
+                    today_repairs:     res.today_repairs     ?? 0,
+                    pending_repairs:   res.pending_repairs   ?? 0,
+                    monthly_expenses:  res.monthly_expenses  ?? 0,
+                    monthly_purchases: res.monthly_purchases ?? 0,
+                    today_recharges:   res.today_recharges   ?? 0,
+                    monthly_revenue:   res.monthly_revenue   ?? 0,
+                    monthly_outflow:   res.monthly_outflow   ?? 0,
+                    recent_invoices:   res.recent_invoices   ?? [],
+                    recent_repairs:    res.recent_repairs    ?? [],
+                    sales_chart:       res.sales_chart       ?? { labels: [], data: [] },
+                };
+            } catch (e) {
+                console.error('Dashboard init error:', e);
+            }
+        },
+
+        formatCurrency(val) {
+            return '₹' + Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        },
+
         statusBadge(s) {
-            const m = { 'received': 'badge-info', 'in_progress': 'badge-warning', 'completed': 'badge-success', 'delivered': 'badge-success', 'cancelled': 'badge-danger' };
+            const m = {
+                'received':    'badge-info',
+                'in_progress': 'badge-warning',
+                'completed':   'badge-success',
+                'delivered':   'badge-success',
+                'cancelled':   'badge-danger'
+            };
             return m[s] || 'badge-secondary';
         },
-        async loadStats() {
-            const res = await RepairBox.ajax('/dashboard');
-            if (res.success !== false) Object.assign(this.stats, res);
-        }
     };
 }
 </script>

@@ -7,7 +7,7 @@ use App\Http\Controllers\{
     PurchaseController, InvoiceController, RepairController, CustomerController,
     RechargeController, ServiceController, ExpenseController, LedgerController,
     ReturnController, UserController, SettingController, ReportController,
-    PartController, RepairReturnController
+    PartController, RepairReturnController, RoleController, MenuController
 };
 
 // Auth
@@ -103,7 +103,14 @@ Route::middleware('auth')->group(function () {
 
     // Users
     Route::resource('users', UserController::class)->except(['edit']);
-    Route::get('roles', [UserController::class, 'roles']);
+
+    // Roles & Permissions
+    Route::resource('roles', RoleController::class)->except(['edit', 'create']);
+    Route::get('permissions/grouped', [RoleController::class, 'allPermissionsGrouped']);
+
+    // Menu Management
+    Route::resource('menus', MenuController::class)->except(['edit', 'show', 'create']);
+    Route::post('menus/reorder', [MenuController::class, 'reorder']);
 
     // Reports
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
