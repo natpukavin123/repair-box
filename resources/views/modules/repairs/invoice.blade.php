@@ -104,9 +104,9 @@
     <div class="totals">
         <div><span>Parts Total:</span><span>₹{{ number_format($partsTotal, 2) }}</span></div>
         @if($servicesTotal > 0)
-        <div><span>Services Total:</span><span>₹{{ number_format($servicesTotal, 2) }}</span></div>
+        <div><span>Other Services:</span><span>₹{{ number_format($servicesTotal, 2) }}</span></div>
         @endif
-        <div><span>Service Charge:</span><span>₹{{ number_format($serviceCharge, 2) }}</span></div>
+        <div><span>Our Service Fee:</span><span>₹{{ number_format($serviceCharge, 2) }}</span></div>
         <div class="grand"><span>Grand Total:</span><span>₹{{ number_format($grandTotal, 2) }}</span></div>
     </div>
 

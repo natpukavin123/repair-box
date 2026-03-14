@@ -49,11 +49,19 @@ class CustomerController extends Controller
 
     public function search()
     {
-        $q = request('q', '');
-        return response()->json(
-            Customer::where('name', 'like', "%{$q}%")
-                ->orWhere('mobile_number', 'like', "%{$q}%")
-                ->take(20)->get()
-        );
+        $q       = request('q', '');
+        $page    = max(1, (int) request('page', 1));
+        $perPage = 15;
+        $results = Customer::when($q, fn($qb) =>
+                        $qb->where('name', 'like', "%{$q}%")
+                           ->orWhere('mobile_number', 'like', "%{$q}%"))
+                    ->orderBy('name')
+                    ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'success'  => true,
+            'data'     => $results->items(),
+            'has_more' => $results->hasMorePages(),
+        ]);
     }
 }

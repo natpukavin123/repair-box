@@ -10,7 +10,7 @@ class RepairServiceItem extends Model
 
     protected $fillable = [
         'repair_id', 'service_type_id', 'service_type_name', 'vendor_id',
-        'customer_charge', 'vendor_charge', 'payment_status', 'status',
+        'customer_charge', 'vendor_charge',
         'reference_no', 'description',
     ];
 

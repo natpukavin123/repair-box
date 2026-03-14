@@ -135,18 +135,8 @@ class RepairReturnController extends Controller
 
             // Return parts to stock
             foreach ($return->items()->where('item_type', 'part')->get() as $returnItem) {
-                if ($returnItem->repairPart && $returnItem->repairPart->part_id) {
-                    $inventory = \App\Models\Inventory::where('product_id', $returnItem->repairPart->part_id)->first();
-                    if ($inventory) {
-                        $inventory->increment('current_stock', $returnItem->quantity);
-                    }
-
-                    \App\Models\StockMovement::create([
-                        'product_id' => $returnItem->repairPart->part_id,
-                        'quantity' => $returnItem->quantity,
-                        'cost_price' => $returnItem->unit_price,
-                    ]);
-                }
+                // Note: In this system, Parts are distinct from Inventory Products.
+                // We do not create StockMovements or update Inventory for Parts.
             }
 
             ActivityLog::log(

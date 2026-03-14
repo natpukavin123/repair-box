@@ -79,7 +79,7 @@
                     <span class="text-sm font-semibold">₹{{ number_format($repair->total_services, 2) }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">Service Charge (Fixed)</span>
+                    <span class="text-sm text-gray-600">Our Service Fee (Fixed)</span>
                     <span class="text-sm font-semibold">₹{{ number_format($repair->service_charge, 2) }}</span>
                 </div>
                 <div class="flex justify-between items-center pt-2 border-t-2">
@@ -200,8 +200,6 @@
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase">#</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Service</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Vendor</th>
-                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Status</th>
-                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Payment</th>
                         <th class="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Customer Charge</th>
                         <th class="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Vendor Charge</th>
                         <th class="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Profit</th>
@@ -224,20 +222,6 @@
                             @endif
                         </td>
                         <td class="px-5 py-3 text-sm text-gray-700">{{ $svc->vendor?->name ?? '-' }}</td>
-                        <td class="px-5 py-3 text-center">
-                            @php
-                                $statusClass = match($svc->status) {
-                                    'completed' => 'bg-green-100 text-green-700',
-                                    'in_progress' => 'bg-amber-100 text-amber-700',
-                                    'cancelled' => 'bg-red-100 text-red-700',
-                                    default => 'bg-gray-100 text-gray-600',
-                                };
-                            @endphp
-                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold {{ $statusClass }}">{{ ucfirst(str_replace('_', ' ', $svc->status)) }}</span>
-                        </td>
-                        <td class="px-5 py-3 text-center">
-                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold {{ $svc->payment_status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700' }}">{{ ucfirst($svc->payment_status) }}</span>
-                        </td>
                         <td class="px-5 py-3 text-right text-sm font-medium">₹{{ number_format($svc->customer_charge, 2) }}</td>
                         <td class="px-5 py-3 text-right text-sm font-medium text-red-600">₹{{ number_format($svc->vendor_charge, 2) }}</td>
                         <td class="px-5 py-3 text-right text-sm font-semibold {{ $svcProfit >= 0 ? 'text-green-600' : 'text-red-600' }}">₹{{ number_format($svcProfit, 2) }}</td>

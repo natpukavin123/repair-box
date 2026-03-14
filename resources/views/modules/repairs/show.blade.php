@@ -138,7 +138,7 @@
 
         <!-- LEFT COLUMN (2/3) -->
         <div class="lg:col-span-2 space-y-5">
-            
+
             <!-- ===== CLOSED - DOWNLOAD INVOICE ===== -->
             <template x-if="repair.status === 'closed'">
                 <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
@@ -165,7 +165,7 @@
             </div>
 
             <div class="bg-white shadow-sm border border-t-0 rounded-b-xl min-h-[500px]">
-                
+
                 <!-- TAB 1: WORK ORDER -->
                 <div x-show="activeTab === 'work'" class="p-5 space-y-6">
 
@@ -216,294 +216,315 @@
                 </div>
             </div>
 
-            <!-- ===== STATUS WORKFLOW ===== -->
-            <template x-if="!repair.is_locked && repair.status !== 'cancelled' && repair.record_type !== 'void'">
-                <div class="bg-white rounded-xl shadow-sm border p-5">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">Update Status</h3>
-                    <div class="flex flex-wrap gap-2">
-                        <template x-for="nextStatus in (repair.allowed_transitions || [])" :key="nextStatus">
-                            <button @click="handleStatusTransition(nextStatus)" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all" :class="statusTransitionBtnClass(nextStatus)">
-                                <span x-text="statusLabel(nextStatus)"></span>
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+
+
+            <!-- ===== COMBINED PARTS + SERVICES (EDITABLE/READ-ONLY) ===== -->
+            <template x-if="['in_progress'].includes(repair.status) && !repair.is_locked">
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b px-5 py-4">
+                        <h3 class="font-bold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 015.646 5.646 9.003 9.003 0 0020.354 15.354z"/></svg>
+                            Work Items & Services
+                        </h3>
+                        <p class="text-xs text-gray-600 mt-1">Manage parts and services for this repair</p>
+                    </div>
+
+                    <div x-data="{ tab: 'parts' }" class="h-full">
+                        <!-- Tab Buttons -->
+                        <div class="flex border-b bg-gray-50 px-5">
+                            <button @click="tab = 'parts'" :class="tab === 'parts' ? 'border-b-2 border-indigo-600 text-indigo-600 bg-white' : 'text-gray-500 hover:text-gray-700'" class="px-4 py-3 text-sm font-semibold transition-all">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
+                                    Parts
+                                </span>
                             </button>
-                        </template>
-                    </div>
-                    <!-- Inline notes for status change -->
-                    <div x-show="pendingTransition" class="mt-3 p-3 bg-gray-50 rounded-lg border" x-cloak>
-                        <div class="text-sm font-medium text-gray-700 mb-2">
-                            Changing to: <span class="font-bold" :class="'text-' + (statusMeta[pendingTransition]?.color || 'gray') + '-600'" x-text="statusLabel(pendingTransition)"></span>
+                            <button @click="tab = 'services'" :class="tab === 'services' ? 'border-b-2 border-indigo-600 text-indigo-600 bg-white' : 'text-gray-500 hover:text-gray-700'" class="px-4 py-3 text-sm font-semibold transition-all">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    Services
+                                </span>
+                            </button>
+                            <button @click="tab = 'charge'" :class="tab === 'charge' ? 'border-b-2 border-indigo-600 text-indigo-600 bg-white' : 'text-gray-500 hover:text-gray-700'" class="px-4 py-3 text-sm font-semibold transition-all">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                    Our Service Fee
+                                </span>
+                            </button>
                         </div>
-                        <input x-model="statusForm.notes" type="text" class="form-input-custom text-sm mb-2" placeholder="Add notes (optional)...">
-                        <template x-if="pendingTransition === 'cancelled'">
-                            <input x-model="statusForm.cancel_reason" type="text" class="form-input-custom text-sm mb-2" placeholder="Reason for cancellation *">
-                        </template>
-                        <div class="flex gap-2">
-                            <button @click="confirmStatusChange()" class="btn-primary text-sm">Confirm</button>
-                            <button @click="pendingTransition = null" class="btn-secondary text-sm">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            </template>
 
-            <!-- ===== SERVICE CHARGE (completed/payment only, not locked) ===== -->
-            <template x-if="['completed','payment'].includes(repair.status) && !repair.is_locked">
-                <div class="bg-white rounded-xl shadow-sm border-2 border-emerald-200 overflow-hidden mb-6">
-                    <div class="bg-emerald-50 px-5 py-3 border-b flex items-center gap-2">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                        <h3 class="font-semibold text-sm text-emerald-800">Additional Service Charge</h3>
-                    </div>
-                    <div class="p-4 bg-white">
-                        <div class="flex items-center gap-3 flex-wrap">
-                            <label class="text-sm font-medium text-gray-700">Enter Charge (₹):</label>
-                            <input x-model="serviceChargeInput" type="number" step="0.01" min="0" class="form-input-custom text-sm w-36" placeholder="0.00">
-                            <button @click="saveServiceCharge()" class="btn-primary text-sm whitespace-nowrap">Apply Charge</button>
-                            <span x-show="repair.service_charge > 0" class="text-xs text-green-600 font-medium flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                Applied
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            <!-- ===== PARTS (in_progress: editable, completed/payment/closed: read-only) ===== -->
-            <template x-if="repair.status === 'in_progress'">
-                <div>
-                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
-                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
-                        Parts Used
-                    </h3>
-                    <div class="bg-white border rounded-xl mb-6">
-                        <!-- Existing Parts -->
-                        <div x-show="(repair.parts || []).length > 0" class="mb-4">
-                            <table class="w-full text-sm">
-                                <thead><tr class="text-xs text-gray-500 uppercase"><th class="text-left pb-2">Part</th><th class="text-center pb-2">Qty</th><th class="text-right pb-2">Price</th><th class="text-right pb-2">Total</th><th class="pb-2"></th></tr></thead>
-                                <tbody>
-                                    <template x-for="p in repair.parts || []" :key="p.id">
-                                        <tr class="border-t">
-                                            <td class="py-2" x-text="p.part ? p.part.name : '-'"></td>
-                                            <td class="py-2 text-center" x-text="p.quantity"></td>
-                                            <td class="py-2 text-right" x-text="'₹' + Number(p.cost_price).toFixed(2)"></td>
-                                            <td class="py-2 text-right font-medium" x-text="'₹' + (Number(p.cost_price) * p.quantity).toFixed(2)"></td>
-                                            <td class="py-2 text-right">
-                                                <button @click="removePart(p.id)" class="text-red-400 hover:text-red-600 transition" title="Remove">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                                <tfoot>
-                                    <tr class="border-t-2 font-semibold">
-                                        <td colspan="3" class="py-2 text-right">Parts Total:</td>
-                                        <td class="py-2 text-right text-primary-600" x-text="'₹' + partsTotal().toFixed(2)"></td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        <!-- Add Part Form -->
-                        <div class="bg-gray-50 rounded-b-xl p-4 mt-2">
-                            <div class="relative mb-2">
-                                <input x-model="partSearch" @input.debounce.300ms="searchParts(1)" @focus="if(partResults.length === 0) searchParts(1)" @click.away="partResults = []" type="text" class="form-input-custom text-sm" placeholder="Search parts...">
-                                <div x-show="partResults.length > 0" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto" @scroll="handlePartScroll($event)">
-                                    <template x-for="pr in partResults" :key="pr.id">
-                                        <button @click="selectPart(pr)" class="w-full text-left px-3 py-2 hover:bg-primary-50 text-sm border-b last:border-0 transition">
-                                            <span class="font-medium" x-text="pr.name"></span>
-                                            <span class="text-gray-400 ml-2" x-text="'₹' + Number(pr.cost_price).toFixed(2)"></span>
-                                            <span class="text-gray-300 ml-1" x-text="'(Stock: ' + (pr.stock_quantity || 0) + ')'"></span>
-                                        </button>
-                                    </template>
-                                    <div x-show="partLoading" class="px-3 py-2 text-xs text-gray-400 text-center">Loading...</div>
+                        <!-- PARTS TAB CONTENT -->
+                        <div x-show="tab === 'parts'" class="p-5 space-y-4">
+                            <!-- Existing Parts -->
+                            <div x-show="(repair.parts || []).length > 0">
+                                <div class="mb-4">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="border-b-2">
+                                                <th class="text-left pb-3 font-semibold text-gray-700">Part Name</th>
+                                                <th class="text-center pb-3 font-semibold text-gray-700">Qty</th>
+                                                <th class="text-right pb-3 font-semibold text-gray-700">Unit Price</th>
+                                                <th class="text-right pb-3 font-semibold text-gray-700">Total</th>
+                                                <th class="pb-3"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="p in repair.parts || []" :key="p.id">
+                                                <tr class="border-b hover:bg-gray-50 transition">
+                                                    <td class="py-3 font-medium text-gray-800" x-text="p.part ? p.part.name : '-'"></td>
+                                                    <td class="py-3 text-center text-gray-600" x-text="p.quantity"></td>
+                                                    <td class="py-3 text-right text-gray-600" x-text="'₹' + Number(p.cost_price).toFixed(2)"></td>
+                                                    <td class="py-3 text-right font-bold text-indigo-600" x-text="'₹' + (Number(p.cost_price) * p.quantity).toFixed(2)"></td>
+                                                    <td class="py-3 text-right">
+                                                        <button @click="removePart(p.id)" class="text-red-400 hover:text-red-600 transition p-1 hover:bg-red-50 rounded" title="Remove">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-indigo-50 border-t-2 border-indigo-200">
+                                                <td colspan="3" class="py-3 text-right font-bold text-gray-800">Parts Total:</td>
+                                                <td class="py-3 text-right font-bold text-indigo-600 text-lg" x-text="'₹' + partsTotal().toFixed(2)"></td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
                             </div>
-                            <div x-show="partForm.part_id" class="text-xs text-gray-600 mb-2 flex items-center gap-1">
-                                <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                Selected: <span class="font-semibold" x-text="partForm._name"></span>
-                                <button @click="partForm.part_id = null; partForm._name = ''" class="text-red-400 ml-1">&times;</button>
+
+                            <!-- Add Part Form -->
+                            <div x-show="repair.status === 'in_progress'" class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                <p class="text-xs font-semibold text-gray-600 uppercase mb-3">Add New Part</p>
+                                <div class="relative mb-3">
+                                    <input x-model="partSearch" @input.debounce.300ms="searchParts(1)" @focus="if(partResults.length === 0) searchParts(1)" @click.away="partResults = []" type="text" class="form-input-custom text-sm w-full" placeholder="Search parts by name...">
+                                    <div x-show="partResults.length > 0" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto top-full" @scroll="handlePartScroll($event)">
+                                        <template x-for="pr in partResults" :key="pr.id">
+                                            <button @click="selectPart(pr)" class="w-full text-left px-3 py-2.5 hover:bg-indigo-50 text-sm border-b last:border-0 transition">
+                                                <span class="font-medium text-gray-800" x-text="pr.name"></span>
+                                                <span class="text-gray-400 text-xs ml-2" x-text="'₹' + Number(pr.cost_price).toFixed(2)"></span>
+                                                <span class="text-gray-300 text-xs ml-1" x-text="'Stock: ' + (pr.stock_quantity || 0)"></span>
+                                            </button>
+                                        </template>
+                                        <div x-show="partLoading" class="px-3 py-2 text-xs text-gray-400 text-center">Loading...</div>
+                                    </div>
+                                </div>
+                                <div x-show="partForm.part_id" class="text-xs text-green-600 mb-2 flex items-center gap-1 px-2 py-1 bg-green-50 rounded-lg w-fit">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Selected: <span class="font-semibold" x-text="partForm._name"></span>
+                                    <button @click="partForm.part_id = null; partForm._name = ''" class="text-red-400 ml-1.5 hover:text-red-600">&times;</button>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input x-model="partForm.quantity" type="number" min="1" class="form-input-custom text-sm" placeholder="Qty">
+                                    <input x-model="partForm.cost_price" type="number" step="0.01" class="form-input-custom text-sm" placeholder="Price ₹">
+                                    <button @click="addPart()" class="btn-primary text-sm font-semibold">Add Part</button>
+                                </div>
                             </div>
-                            <div class="flex gap-2">
-                                <input x-model="partForm.quantity" type="number" min="1" class="form-input-custom text-sm w-20" placeholder="Qty">
-                                <input x-model="partForm.cost_price" type="number" step="0.01" class="form-input-custom text-sm w-28" placeholder="Price ₹">
-                                <button @click="addPart()" class="btn-primary text-sm whitespace-nowrap">Add Part</button>
+                            <div x-show="(repair.parts || []).length === 0" class="text-center py-8 text-gray-400">
+                                <svg class="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                                <p class="text-sm">No parts added yet</p>
+                            </div>
+                        </div>
+
+                        <!-- SERVICES TAB CONTENT -->
+                        <div x-show="tab === 'services'" class="p-5 space-y-4">
+                            <!-- Existing Services List -->
+                            <div x-show="(repair.repair_services || []).length > 0">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b-2">
+                                            <th class="text-left pb-3 font-semibold text-gray-700">Service</th>
+                                            <th class="text-left pb-3 font-semibold text-gray-700">Vendor</th>
+                                            <th class="text-right pb-3 font-semibold text-gray-700">Customer Charge</th>
+                                            <th class="pb-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="svc in repair.repair_services || []" :key="svc.id">
+                                            <tr class="border-b group hover:bg-gray-50 transition">
+                                                <td class="py-3">
+                                                    <div class="font-medium text-gray-800" x-text="svc.service_type_name"></div>
+                                                    <div class="text-xs text-gray-400 mt-0.5" x-show="svc.description" x-text="svc.description"></div>
+                                                </td>
+                                                <td class="py-3 text-sm text-gray-600" x-text="svc.vendor ? svc.vendor.name : '-'"></td>
+                                                <td class="py-3 text-right font-bold text-indigo-600" x-text="'₹' + Number(svc.customer_charge).toFixed(2)"></td>
+                                                <td class="py-3 text-right">
+                                                    <button @click="removeService(svc.id)" class="text-red-400 hover:text-red-600 transition p-1 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100" title="Remove">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="bg-indigo-50 border-t-2 border-indigo-200">
+                                            <td colspan="2" class="py-3 text-right font-bold text-gray-800">Services Total:</td>
+                                            <td class="py-3 text-right font-bold text-indigo-600 text-lg" x-text="'₹' + servicesTotal().toFixed(2)"></td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Add Service Form -->
+                            <div x-show="repair.status === 'in_progress'" class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                <p class="text-xs font-semibold text-gray-600 uppercase mb-3">Add New Service</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+                                    <!-- Service Type -->
+                                    <div class="relative">
+                                        <input x-model="svcForm.service_type_name" @input.debounce.300ms="searchServiceTypes(1)" @focus="if(svcTypeResults.length === 0) searchServiceTypes(1)" @click.away="svcTypeResults = []" type="text" class="form-input-custom text-sm w-full" placeholder="Service type (search or custom)...">
+                                        <div x-show="svcTypeResults.length > 0" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto top-full" @scroll="handleSvcTypeScroll($event)">
+                                            <template x-for="st in svcTypeResults" :key="st.id">
+                                                <button @click="selectServiceType(st)" class="w-full text-left px-3 py-2.5 hover:bg-indigo-50 text-sm border-b last:border-0 transition">
+                                                    <span class="font-medium text-gray-800" x-text="st.name"></span>
+                                                    <span class="text-gray-400 text-xs ml-2" x-show="st.default_price" x-text="'₹' + Number(st.default_price).toFixed(2)"></span>
+                                                </button>
+                                            </template>
+                                            <div x-show="svcTypeLoading" class="px-3 py-2 text-xs text-gray-400 text-center">Loading...</div>
+                                        </div>
+                                    </div>
+                                    <!-- Vendor -->
+                                    <div class="relative">
+                                        <input x-model="vendorSearch" @input.debounce.300ms="searchVendors(1)" @focus="if(vendorResults.length === 0) searchVendors(1)" @click.away="vendorResults = []" type="text" class="form-input-custom text-sm w-full" placeholder="Vendor (search)...">
+                                        <div x-show="vendorResults.length > 0" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto top-full" @scroll="handleVendorScroll($event)">
+                                            <template x-for="v in vendorResults" :key="v.id">
+                                                <button @click="selectVendor(v)" class="w-full text-left px-3 py-2.5 hover:bg-indigo-50 text-sm border-b last:border-0 transition">
+                                                    <span class="font-medium text-gray-800" x-text="v.name"></span>
+                                                    <span class="text-gray-400 text-xs ml-2" x-show="v.specialization" x-text="v.specialization"></span>
+                                                </button>
+                                            </template>
+                                            <div x-show="vendorLoading" class="px-3 py-2 text-xs text-gray-400 text-center">Loading...</div>
+                                        </div>
+                                        <div x-show="svcForm.vendor_id" class="text-xs text-green-600 mt-1.5 flex items-center gap-1 px-2 py-1 bg-green-50 rounded-lg w-fit">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                            Vendor: <span class="font-semibold" x-text="svcForm._vendor_name"></span>
+                                            <button @click="svcForm.vendor_id = null; svcForm._vendor_name = ''; vendorSearch = ''" class="text-red-400 ml-1 hover:text-red-600">&times;</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 mb-3">
+                                    <input x-model="svcForm.customer_charge" type="number" step="0.01" class="form-input-custom text-sm" placeholder="Cust. Charge ₹">
+                                    <input x-model="svcForm.vendor_charge" type="number" step="0.01" class="form-input-custom text-sm" placeholder="Vendor Charge ₹">
+                                    <input x-model="svcForm.reference_no" type="text" class="form-input-custom text-sm" placeholder="Ref No">
+                                </div>
+                                <div class="flex gap-2">
+                                    <input x-model="svcForm.description" type="text" class="form-input-custom text-sm flex-1" placeholder="Description (optional)...">
+                                    <button @click="addService()" class="btn-primary text-sm font-semibold whitespace-nowrap">Add Service</button>
+                                </div>
+                            </div>
+                            <div x-show="(repair.repair_services || []).length === 0" class="text-center py-8 text-gray-400">
+                                <svg class="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                <p class="text-sm">No services added yet</p>
+                            </div>
+                        </div>
+
+                        <!-- SERVICE CHARGE TAB CONTENT -->
+                        <div x-show="tab === 'charge'" class="p-5 space-y-4">
+                            <p class="text-xs font-semibold text-gray-600 uppercase mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                Additional Service Fee
+                            </p>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <label class="text-sm font-medium text-gray-700">Enter Charge (₹):</label>
+                                <input x-model="serviceChargeInput" type="number" step="0.01" min="0" class="form-input-custom text-sm w-36" placeholder="0.00">
+                                <button @click="saveServiceCharge()" class="btn-primary text-sm whitespace-nowrap">Apply Charge</button>
+                                <span x-show="repair.service_charge > 0" class="text-xs text-green-600 font-medium flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Applied
+                                </span>
+                            </div>
+                            <div x-show="repair.service_charge > 0" class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-medium text-gray-700">Current Service Fee</span>
+                                    <span class="text-lg font-bold text-emerald-600" x-text="'₹' + Number(repair.service_charge || 0).toFixed(2)"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </template>
 
-            <!-- Parts Summary (read-only, completed/payment/closed/cancelled) -->
+            <!-- PARTS READ-ONLY SUMMARY (completed/payment/closed/cancelled) -->
             <template x-if="['completed','payment','closed','cancelled'].includes(repair.status) && (repair.parts || []).length > 0">
-                <div>
-                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
-                        Parts Used
-                    </h3>
-                    <div class="bg-white rounded-xl border overflow-hidden mb-6">
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b px-5 py-4">
+                        <h3 class="font-bold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 015.646 5.646 9.003 9.003 0 0020.354 15.354z"/></svg>
+                            Parts Used
+                        </h3>
+                    </div>
+                    <div class="p-5">
                         <table class="w-full text-sm">
-                            <thead><tr class="text-xs text-gray-500 uppercase"><th class="text-left pb-2">Part</th><th class="text-center pb-2">Qty</th><th class="text-right pb-2">Price</th><th class="text-right pb-2">Total</th></tr></thead>
+                            <thead>
+                                <tr class="border-b-2">
+                                    <th class="text-left pb-3 font-semibold text-gray-700">Part Name</th>
+                                    <th class="text-center pb-3 font-semibold text-gray-700">Qty</th>
+                                    <th class="text-right pb-3 font-semibold text-gray-700">Unit Price</th>
+                                    <th class="text-right pb-3 font-semibold text-gray-700">Total</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 <template x-for="p in repair.parts || []" :key="p.id">
-                                    <tr class="border-t"><td class="py-2" x-text="p.part ? p.part.name : '-'"></td><td class="py-2 text-center" x-text="p.quantity"></td><td class="py-2 text-right" x-text="'₹' + Number(p.cost_price).toFixed(2)"></td><td class="py-2 text-right font-medium" x-text="'₹' + (Number(p.cost_price) * p.quantity).toFixed(2)"></td></tr>
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="py-3 font-medium text-gray-800" x-text="p.part ? p.part.name : '-'"></td>
+                                        <td class="py-3 text-center text-gray-600" x-text="p.quantity"></td>
+                                        <td class="py-3 text-right text-gray-600" x-text="'₹' + Number(p.cost_price).toFixed(2)"></td>
+                                        <td class="py-3 text-right font-bold text-indigo-600" x-text="'₹' + (Number(p.cost_price) * p.quantity).toFixed(2)"></td>
+                                    </tr>
                                 </template>
                             </tbody>
-                            <tfoot><tr class="border-t-2 font-semibold"><td colspan="3" class="py-2 text-right">Parts Total:</td><td class="py-2 text-right text-primary-600" x-text="'₹' + partsTotal().toFixed(2)"></td></tr></tfoot>
+                            <tfoot>
+                                <tr class="bg-indigo-50 border-t-2 border-indigo-200">
+                                    <td colspan="3" class="py-3 text-right font-bold text-gray-800">Total:</td>
+                                    <td class="py-3 text-right font-bold text-indigo-600 text-lg" x-text="'₹' + partsTotal().toFixed(2)"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
             </template>
 
-            <!-- ===== SERVICES (in_progress/completed/payment: editable) ===== -->
-            <template x-if="['in_progress','completed','payment'].includes(repair.status) && !repair.is_locked">
-                <div>
-                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
-                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        Services
-                    </h3>
-                    <div class="bg-white border rounded-xl mb-6">
-                        <!-- Existing Services List -->
-                        <div x-show="(repair.repair_services || []).length > 0" class="mb-4">
-                            <table class="w-full text-sm">
-                                <thead>
-                                    <tr class="text-xs text-gray-500 uppercase">
-                                        <th class="text-left pb-2">Service</th>
-                                        <th class="text-left pb-2">Vendor</th>
-                                        <th class="text-right pb-2">Cust. Charge</th>
-                                        <th class="text-right pb-2">Vendor Charge</th>
-                                        <th class="text-center pb-2">Payment</th>
-                                        <th class="text-center pb-2">Status</th>
-                                        <th class="pb-2"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="svc in repair.repair_services || []" :key="svc.id">
-                                        <tr class="border-t group">
-                                            <td class="py-2">
-                                                <div class="font-medium" x-text="svc.service_type_name"></div>
-                                                <div class="text-xs text-gray-400" x-show="svc.reference_no" x-text="'Ref: ' + svc.reference_no"></div>
-                                                <div class="text-xs text-gray-400" x-show="svc.description" x-text="svc.description"></div>
-                                            </td>
-                                            <td class="py-2 text-sm" x-text="svc.vendor ? svc.vendor.name : '-'"></td>
-                                            <td class="py-2 text-right font-medium" x-text="'₹' + Number(svc.customer_charge).toFixed(2)"></td>
-                                            <td class="py-2 text-right text-gray-500" x-text="'₹' + Number(svc.vendor_charge).toFixed(2)"></td>
-                                            <td class="py-2 text-center">
-                                                <button @click="toggleServicePayment(svc)" class="text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer"
-                                                    :class="svc.payment_status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'"
-                                                    x-text="svc.payment_status === 'completed' ? 'Paid' : 'Pending'">
-                                                </button>
-                                            </td>
-                                            <td class="py-2 text-center">
-                                                <select @change="updateServiceStatus(svc, $event.target.value)" :value="svc.status" class="text-xs border rounded px-1 py-0.5">
-                                                    <option value="pending">Pending</option>
-                                                    <option value="in_progress">In Progress</option>
-                                                    <option value="completed">Completed</option>
-                                                    <option value="cancelled">Cancelled</option>
-                                                </select>
-                                            </td>
-                                            <td class="py-2 text-right">
-                                                <button @click="removeService(svc.id)" class="text-red-400 hover:text-red-600 transition opacity-0 group-hover:opacity-100" title="Remove">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                                <tfoot>
-                                    <tr class="border-t-2 font-semibold">
-                                        <td colspan="2" class="py-2 text-right">Services Total:</td>
-                                        <td class="py-2 text-right text-indigo-600" x-text="'₹' + servicesTotal().toFixed(2)"></td>
-                                        <td class="py-2 text-right text-gray-400" x-text="'₹' + vendorChargesTotal().toFixed(2)"></td>
-                                        <td colspan="3"></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        <!-- Add Service Form -->
-                        <div class="bg-gray-50 rounded-b-xl p-4 mt-2">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-                                <!-- Service Type (auto-suggest + custom) -->
-                                <div class="relative">
-                                    <input x-model="svcForm.service_type_name" @input.debounce.300ms="searchServiceTypes(1)" @focus="if(svcTypeResults.length === 0) searchServiceTypes(1)" @click.away="svcTypeResults = []" type="text" class="form-input-custom text-sm" placeholder="Service type (type to search or enter custom)...">
-                                    <div x-show="svcTypeResults.length > 0" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto" @scroll="handleSvcTypeScroll($event)">
-                                        <template x-for="st in svcTypeResults" :key="st.id">
-                                            <button @click="selectServiceType(st)" class="w-full text-left px-3 py-2 hover:bg-primary-50 text-sm border-b last:border-0 transition">
-                                                <span class="font-medium" x-text="st.name"></span>
-                                                <span class="text-gray-400 ml-2" x-show="st.default_price" x-text="'₹' + Number(st.default_price).toFixed(2)"></span>
-                                            </button>
-                                        </template>
-                                        <div x-show="svcTypeLoading" class="px-3 py-2 text-xs text-gray-400 text-center">Loading...</div>
-                                    </div>
-                                </div>
-                                <!-- Vendor (auto-suggest) -->
-                                <div class="relative">
-                                    <input x-model="vendorSearch" @input.debounce.300ms="searchVendors(1)" @focus="if(vendorResults.length === 0) searchVendors(1)" @click.away="vendorResults = []" type="text" class="form-input-custom text-sm" placeholder="Vendor (type to search)...">
-                                    <div x-show="vendorResults.length > 0" class="absolute z-50 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto" @scroll="handleVendorScroll($event)">
-                                        <template x-for="v in vendorResults" :key="v.id">
-                                            <button @click="selectVendor(v)" class="w-full text-left px-3 py-2 hover:bg-primary-50 text-sm border-b last:border-0 transition">
-                                                <span class="font-medium" x-text="v.name"></span>
-                                                <span class="text-gray-400 ml-2 text-xs" x-show="v.specialization" x-text="v.specialization"></span>
-                                            </button>
-                                        </template>
-                                        <div x-show="vendorLoading" class="px-3 py-2 text-xs text-gray-400 text-center">Loading...</div>
-                                    </div>
-                                    <div x-show="svcForm.vendor_id" class="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                                        <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                        Vendor: <span class="font-semibold" x-text="svcForm._vendor_name"></span>
-                                        <button @click="svcForm.vendor_id = null; svcForm._vendor_name = ''; vendorSearch = ''" class="text-red-400 ml-1">&times;</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                                <input x-model="svcForm.customer_charge" type="number" step="0.01" class="form-input-custom text-sm" placeholder="Cust. Charge ₹">
-                                <input x-model="svcForm.vendor_charge" type="number" step="0.01" class="form-input-custom text-sm" placeholder="Vendor Charge ₹">
-                                <input x-model="svcForm.reference_no" type="text" class="form-input-custom text-sm" placeholder="Reference No">
-                                <select x-model="svcForm.status" class="form-select-custom text-sm">
-                                    <option value="pending">Pending</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                </select>
-                            </div>
-                            <div class="flex gap-2">
-                                <input x-model="svcForm.description" type="text" class="form-input-custom text-sm flex-1" placeholder="Description (optional)...">
-                                <button @click="addService()" class="btn-primary text-sm whitespace-nowrap">Add Service</button>
-                            </div>
-                        </div>
+            <!-- SERVICES READ-ONLY SUMMARY (completed/payment/closed/cancelled) -->
+            <template x-if="['completed','payment','closed','cancelled'].includes(repair.status) && (repair.repair_services || []).length > 0">
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b px-5 py-4">
+                        <h3 class="font-bold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            Services
+                        </h3>
                     </div>
-                </div>
-            </template>
-
-            <!-- Services Summary (read-only, closed/cancelled) -->
-            <template x-if="['closed','cancelled'].includes(repair.status) && (repair.repair_services || []).length > 0">
-                <div>
-                    <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wide flex items-center gap-2 mb-3">
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        Services
-                    </h3>
-                    <div class="bg-white border rounded-xl overflow-hidden mb-6">
+                    <div class="p-5">
                         <table class="w-full text-sm">
-                            <thead><tr class="text-xs text-gray-500 uppercase"><th class="text-left pb-2">Service</th><th class="text-left pb-2">Vendor</th><th class="text-right pb-2">Charge</th><th class="text-center pb-2">Status</th></tr></thead>
+                            <thead>
+                                <tr class="border-b-2">
+                                    <th class="text-left pb-3 font-semibold text-gray-700">Service</th>
+                                    <th class="text-left pb-3 font-semibold text-gray-700">Vendor</th>
+                                    <th class="text-right pb-3 font-semibold text-gray-700">Charge</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 <template x-for="svc in repair.repair_services || []" :key="svc.id">
-                                    <tr class="border-t">
-                                        <td class="py-2">
-                                            <div class="font-medium" x-text="svc.service_type_name"></div>
-                                            <div class="text-xs text-gray-400" x-show="svc.reference_no" x-text="'Ref: ' + svc.reference_no"></div>
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="py-3">
+                                            <div class="font-medium text-gray-800" x-text="svc.service_type_name"></div>
+                                            <div class="text-xs text-gray-400 mt-0.5" x-show="svc.description" x-text="svc.description"></div>
                                         </td>
-                                        <td class="py-2 text-sm" x-text="svc.vendor ? svc.vendor.name : '-'"></td>
-                                        <td class="py-2 text-right font-medium" x-text="'₹' + Number(svc.customer_charge).toFixed(2)"></td>
-                                        <td class="py-2 text-center">
-                                            <span class="text-xs px-2 py-0.5 rounded-full font-medium"
-                                                :class="{'bg-green-100 text-green-700': svc.status === 'completed', 'bg-yellow-100 text-yellow-700': svc.status === 'pending', 'bg-blue-100 text-blue-700': svc.status === 'in_progress', 'bg-red-100 text-red-700': svc.status === 'cancelled'}"
-                                                x-text="svc.status.replace('_', ' ')"></span>
-                                        </td>
+                                        <td class="py-3 text-sm text-gray-600" x-text="svc.vendor ? svc.vendor.name : '-'"></td>
+                                        <td class="py-3 text-right font-bold text-indigo-600" x-text="'₹' + Number(svc.customer_charge).toFixed(2)"></td>
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot><tr class="border-t-2 font-semibold"><td colspan="2" class="py-2 text-right">Services Total:</td><td class="py-2 text-right text-indigo-600" x-text="'₹' + servicesTotal().toFixed(2)"></td><td></td></tr></tfoot>
+                            <tfoot>
+                                <tr class="bg-indigo-50 border-t-2 border-indigo-200">
+                                    <td colspan="2" class="py-3 text-right font-bold text-gray-800">Total:</td>
+                                    <td class="py-3 text-right font-bold text-indigo-600 text-lg" x-text="'₹' + servicesTotal().toFixed(2)"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
             </template>
+
 
 
 
@@ -520,13 +541,27 @@
                         <div class="space-y-4">
                             <template x-for="sh in (repair.status_history || []).slice().reverse()" :key="sh.id">
                                 <div class="relative flex items-start gap-3 pl-8">
-                                    <div class="absolute left-1.5 top-1 w-3.5 h-3.5 rounded-full border-2 border-white" :class="statusDotBg(sh.status)"></div>
+                                    <div class="absolute left-1.5 top-1 w-3.5 h-3.5 rounded-full border-2 border-white"
+                                         :class="sh.notes && !['received','in_progress','completed','payment','closed','cancelled'].includes(sh.status)
+                                                 ? 'bg-indigo-400'
+                                                 : statusDotBg(sh.status)"
+                                    ></div>
                                     <div class="flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-semibold" x-text="statusLabel(sh.status)"></span>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <!-- Activity note (part/service log) -->
+                                            <template x-if="sh.notes && sh.notes.startsWith('Part ') || sh.notes && sh.notes.startsWith('Service ')">
+                                                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                                    Activity
+                                                </span>
+                                            </template>
+                                            <!-- Status change badge -->
+                                            <template x-if="!(sh.notes && sh.notes.startsWith('Part ') || sh.notes && sh.notes.startsWith('Service '))">
+                                                <span class="text-sm font-semibold" x-text="statusLabel(sh.status)"></span>
+                                            </template>
                                             <span class="text-xs text-gray-400" x-text="formatDateTime(sh.created_at)"></span>
                                         </div>
-                                        <p class="text-xs text-gray-500 mt-0.5" x-show="sh.notes" x-text="sh.notes"></p>
+                                        <p class="text-xs text-gray-600 mt-0.5 font-medium" x-show="sh.notes" x-text="sh.notes"></p>
                                         <p class="text-xs text-gray-400" x-show="sh.updater" x-text="'by ' + (sh.updater?.name || '')"></p>
                                     </div>
                                 </div>
@@ -540,100 +575,219 @@
 
         <!-- RIGHT COLUMN (1/3) -->
         <div class="space-y-5">
-            
-            <!-- ===== INVOICE SUMMARY (Always visible) ===== -->
-            <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-5 text-white sticky top-5">
-                <h3 class="font-bold text-sm text-gray-300 mb-4 flex items-center justify-between uppercase tracking-wider">
-                    <span class="flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
-                        Financial Summary
-                    </span>
-                    <span class="text-xs bg-gray-700 px-2 py-1 rounded" x-text="repair.ticket_number"></span>
-                </h3>
-                
-                <div class="space-y-3 text-sm">
-                    <div class="flex justify-between items-center text-gray-300">
-                        <span>Parts</span>
-                        <span class="font-medium text-white" x-text="'₹' + partsTotal().toFixed(2)"></span>
+
+            <!-- ===== REPAIR OPERATIONS PANEL (Compact) ===== -->
+            <template x-if="!repair.is_locked && repair.status !== 'cancelled' && repair.record_type !== 'void'">
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <!-- Header -->
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
+                        <h3 class="font-bold text-white text-xs uppercase tracking-wider">Repair Operations</h3>
+                        <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     </div>
-                    <div class="flex justify-between items-center text-gray-300">
-                        <span>Services</span>
-                        <span class="font-medium text-white" x-text="'₹' + servicesTotal().toFixed(2)"></span>
+
+                    <!-- Content -->
+                    <div class="p-4 space-y-3">
+                        <!-- Status Transitions -->
+                        <div>
+                            <label class="text-xs font-bold text-gray-600 uppercase block mb-2.5">Change Status</label>
+                            <div class="space-y-2">
+                                <template x-for="nextStatus in (repair.status === 'payment' ? (repair.allowed_transitions || []).filter(s => s === 'cancelled') : (repair.allowed_transitions || []))" :key="nextStatus">
+                                    <button @click="nextStatus === 'cancelled' ? (showCancel = true) : handleStatusTransition(nextStatus)" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:scale-[1.02] hover:shadow-md" :class="statusTransitionBtnClass(nextStatus)">
+                                        <template x-if="nextStatus === 'in_progress'"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></template>
+                                        <template x-if="nextStatus === 'completed'"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></template>
+                                        <template x-if="nextStatus === 'payment'"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></template>
+                                        <template x-if="nextStatus === 'closed'"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></template>
+                                        <template x-if="nextStatus === 'cancelled'"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></template>
+                                        <span x-text="statusLabel(nextStatus)"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <!-- Inline notes for status change -->
+                            <div x-show="pendingTransition" class="mt-3 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden" x-cloak>
+                                <!-- Header bar -->
+                                <div class="bg-blue-100 px-4 py-2.5 flex items-center gap-2 border-b border-blue-200">
+                                    <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span class="text-xs font-bold text-blue-800 uppercase tracking-wide" x-text="'Confirm: ' + statusLabel(pendingTransition)"></span>
+                                </div>
+                                <!-- Body -->
+                                <div class="p-4 space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-blue-700 mb-1.5">Notes <span class="font-normal text-blue-500">(optional)</span></label>
+                                        <input x-model="statusForm.notes" type="text" class="form-input-custom text-sm w-full" placeholder="Add a note…">
+                                    </div>
+                                    <template x-if="pendingTransition === 'cancelled'">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-red-700 mb-1.5">Cancellation Reason <span class="text-red-500">*</span></label>
+                                            <input x-model="statusForm.cancel_reason" type="text" class="form-input-custom text-sm w-full" placeholder="Why is this being cancelled?">
+                                        </div>
+                                    </template>
+                                    <div class="flex gap-2 pt-1">
+                                        <button @click="confirmStatusChange()"
+                                            class="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-bold text-white transition-all hover:opacity-90"
+                                            style="background:linear-gradient(135deg,#2563eb,#1d4ed8);">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                            Confirm
+                                        </button>
+                                        <button @click="pendingTransition = null"
+                                            class="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Actions -->
+                        <div x-show="repair.is_fully_paid && repair.has_returnable_items" class="border-t border-gray-200 pt-3">
+                            <label class="text-xs font-bold text-gray-600 uppercase block mb-2.5">Actions</label>
+                            <a :href="'/repairs/' + repair.id + '/returns/create'" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                <span>Return Items</span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center text-gray-300">
-                        <span>Service Charge</span>
-                        <span class="font-medium text-white" x-text="'₹' + Number(repair.service_charge || 0).toFixed(2)"></span>
+                </div>
+            </template>
+
+            <!-- ===== FINANCIAL SUMMARY (Enhanced Design) ===== -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden z-10">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b px-5 py-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Financial Summary
+                        </h3>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700" x-text="repair.ticket_number"></span>
                     </div>
-                    <div class="pt-3 border-t border-gray-600 flex justify-between items-center font-bold text-base">
-                        <span>Grand Total</span>
-                        <span class="text-blue-400" x-text="'₹' + grandTotal().toFixed(2)"></span>
+                </div>
+
+                <!-- Content -->
+                <div class="p-5 space-y-3">
+                    <!-- Line Items -->
+                    <div class="space-y-2.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600 font-medium">Parts Cost</span>
+                            <span class="text-sm font-bold text-gray-800" x-text="'₹' + partsTotal().toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600 font-medium">Other Services</span>
+                            <span class="text-sm font-bold text-gray-800" x-text="'₹' + servicesTotal().toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600 font-medium">Our Service Fee</span>
+                            <span class="text-sm font-bold text-gray-800" x-text="'₹' + Number(repair.service_charge || 0).toFixed(2)"></span>
+                        </div>
                     </div>
-                    
-                    <div class="pt-3 border-t border-gray-600 flex justify-between items-center font-bold text-lg">
-                        <span>Balance Due</span>
-                        <span :class="balanceDue() > 0 ? 'text-red-400' : 'text-green-400'" x-text="'₹' + balanceDue().toFixed(2)"></span>
+
+                    <!-- Divider -->
+                    <div class="border-t-2 border-gray-200 my-3"></div>
+
+                    <!-- Grand Total -->
+                    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3 border border-indigo-200">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold uppercase text-sm text-gray-800">Grand Total</span>
+                            <span class="text-xl font-bold text-indigo-600" x-text="'₹' + grandTotal().toFixed(2)"></span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Breakdown -->
+                    <div class="space-y-2">
+                        <!-- Advance Paid -->
+                        <template x-if="advancePaid() > 0">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-600 flex items-center gap-1">
+                                    <span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+                                    Advance Paid
+                                </span>
+                                <span class="font-bold text-amber-600" x-text="'₹' + advancePaid().toFixed(2)"></span>
+                            </div>
+                        </template>
+                        <!-- Final Paid -->
+                        <template x-if="finalPaid() > 0">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-600 flex items-center gap-1">
+                                    <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                                    Final Paid
+                                </span>
+                                <span class="font-bold text-green-600" x-text="'₹' + finalPaid().toFixed(2)"></span>
+                            </div>
+                        </template>
+                        <!-- Net Total Paid -->
+                        <div class="flex justify-between items-center text-sm pt-1 border-t border-gray-100">
+                            <span class="text-gray-700 font-semibold">Total Paid</span>
+                            <span class="font-bold text-indigo-600" x-text="'₹' + (totalPaid() - totalRefunded()).toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm" x-show="totalRefunded() > 0">
+                            <span class="text-gray-600">Amount Refunded</span>
+                            <span class="font-bold text-red-600" x-text="'₹' + totalRefunded().toFixed(2)"></span>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="border-t-2 border-gray-200 my-3"></div>
+
+                    <!-- Balance Due -->
+                    <div x-show="grandTotal() > 0" :class="balanceDue() > 0 ? 'bg-gradient-to-br from-red-50 to-orange-50 border border-red-200' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'">
+                        <div class="rounded-lg p-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold uppercase text-sm" :class="balanceDue() > 0 ? 'text-red-800' : 'text-green-800'">Balance Due</span>
+                                <span class="text-xl font-bold" :class="balanceDue() > 0 ? 'text-red-600' : 'text-green-600'" x-text="'₹' + balanceDue().toFixed(2)"></span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- ===== PAYMENT COLLECTION (payment status) ===== -->
                     <template x-if="repair.status === 'payment' && balanceDue() > 0">
-                        <div class="mt-4 pt-4 border-t border-gray-600">
-                            <div class="flex flex-col gap-2">
-                                <div class="flex gap-2">
-                                    <div class="flex-1">
-                                        <label class="text-xs text-gray-400 mb-1 block">Amount (₹)</label>
-                                        <input x-model="payForm.amount" type="number" step="0.01" class="w-full px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-inner placeholder-gray-400" placeholder="0.00">
-                                    </div>
-                                    <div class="w-24">
-                                        <label class="text-xs text-gray-400 mb-1 block">Method</label>
-                                        <select x-model="payForm.payment_method" class="w-full px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-inner">
-                                            <option value="cash">Cash</option>
-                                            <option value="card">Card</option>
-                                            <option value="upi">UPI</option>
-                                            <option value="bank">Bank</option>
-                                        </select>
-                                    </div>
+                        <div class="mt-4 pt-3 border-t border-gray-200">
+                            <!-- Attention Banner -->
+                            <div class="mb-3 flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
+                                <svg class="w-4 h-4 text-amber-500 flex-shrink-0 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                <p class="text-xs font-bold text-amber-700">Payment required to close this repair</p>
+                            </div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase mb-3">Collect Payment</p>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="text-xs text-gray-600 mb-1.5 block font-medium">Amount (₹)</label>
+                                    <input x-model="payForm.amount" type="number" step="0.01" class="form-input-custom text-sm w-full" placeholder="0.00">
                                 </div>
-                                <button @click="collectPayment()" class="w-full btn-success py-2 font-bold shadow-sm">Process Payment</button>
+                                <div>
+                                    <label class="text-xs text-gray-600 mb-1.5 block font-medium">Payment Method</label>
+                                    <select x-model="payForm.payment_method" class="form-select-custom text-sm w-full">
+                                        <option value="cash">Cash</option>
+                                        <option value="card">Card</option>
+                                        <option value="upi">UPI</option>
+                                        <option value="bank">Bank</option>
+                                    </select>
+                                </div>
+                                <!-- Highlighted Process Payment Button -->
+                                <button @click="collectPayment()"
+                                    style="display:block;width:100%;margin-top:0.5rem;padding:0.65rem 1rem;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;font-weight:700;font-size:0.875rem;border:none;border-radius:0.5rem;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,0.4);animation:paymentPulse 2s ease-in-out infinite;">
+                                    <span style="display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                                        <svg style="width:1rem;height:1rem;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Process Payment
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     </template>
-                    
+
+                    <!-- Fully Paid Indicator -->
                     <template x-if="repair.status === 'payment' && balanceDue() <= 0 && grandTotal() > 0">
-                        <div class="mt-4 pt-4 border-t border-gray-600 text-center">
-                            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white mb-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <div class="pt-3 border-t border-gray-200 text-center">
+                            <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-100 text-green-600 mb-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                             </div>
-                            <p class="font-bold text-green-400">Fully Paid!</p>
-                            <p class="text-xs text-gray-400 mt-1">Ready to be closed.</p>
+                            <p class="font-bold text-green-700 text-sm">Fully Paid!</p>
+                            <p class="text-xs text-gray-500 mt-1">Ready to be closed.</p>
                         </div>
                     </template>
                 </div>
             </div>
 
             <!-- ===== ACTIONS CONTAINER ===== -->
-            <template x-if="repair.record_type !== 'void' && repair.status !== 'cancelled'">
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <div class="bg-gray-50 px-4 py-3 border-b"><h3 class="font-semibold text-sm text-gray-600">Admin Actions</h3></div>
-                    <div class="p-4 space-y-2">
-                        <!-- Return Button moved here from header -->
-                        <a x-show="repair.is_fully_paid && repair.has_returnable_items" :href="'/repairs/' + repair.id + '/returns/create'" class="w-full inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border-2 border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 transition justify-center">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                            Process Return
-                        </a>
-                        <template x-if="!repair.is_locked && repair.status !== 'cancelled'">
-                            <button @click="showCancelRefund = true" class="w-full inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border-2 border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                                Cancel & Refund
-                            </button>
-                        </template>
-                        <template x-if="repair.status === 'received'">
-                            <button @click="showVoid = true" class="w-full inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border-2 border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                Void
-                            </button>
-                        </template>
-                    </div>
-                </div>
+            <template x-if="repair.record_type === 'void' || repair.status === 'cancelled'">
             </template>
 
             <!-- ===== CHILD REPAIRS (voids/duplicates) ===== -->
@@ -728,84 +882,108 @@
     </div>
 
     <!-- ===== CANCEL & REFUND MODAL ===== -->
-    <div x-show="showCancelRefund" class="modal-overlay" x-cloak>
-        <div class="modal-container max-w-md" @click.away="showCancelRefund = false">
+    <!-- ===== UNIFIED CANCEL MODAL (Refund or Void) ===== -->
+    <div x-show="showCancel" class="modal-overlay" x-cloak>
+        <div class="modal-container max-w-md" @click.away="showCancel = false">
             <div class="modal-header">
-                <h3 class="text-lg font-bold text-red-700">Cancel Repair & Refund</h3>
-                <button @click="showCancelRefund = false" class="text-gray-400 hover:text-gray-600">&times;</button>
+                <h3 class="text-lg font-bold text-red-700">
+                    <span x-show="repair.net_paid > 0">Cancel & Refund</span>
+                    <span x-show="repair.net_paid <= 0 && repair.status === 'received'">Void Repair</span>
+                    <span x-show="repair.net_paid <= 0 && repair.status !== 'received'">Cancel Repair</span>
+                </h3>
+                <button @click="showCancel = false" class="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="bg-red-50 rounded-lg p-3 mb-4 text-sm text-red-700">
-                    <p class="font-medium">This will cancel the repair and refund any advance payments.</p>
-                    <p class="mt-1" x-show="repair.net_paid > 0">Advance paid: <strong x-text="'₹' + Number(repair.net_paid || 0).toFixed(2)"></strong> will be refunded.</p>
-                </div>
-                <div class="space-y-3">
+                <!-- Refund Flow (if payment exists) -->
+                <template x-if="repair.net_paid > 0">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
-                        <textarea x-model="cancelForm.reason" class="form-input-custom" rows="2" placeholder="Why is this being cancelled?"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Refund Method</label>
-                        <select x-model="cancelForm.refund_method" class="form-select-custom w-full">
-                            <option value="cash">Cash</option>
-                            <option value="card">Card</option>
-                            <option value="upi">UPI</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                        </select>
-                    </div>
-                    <!-- Parts handling -->
-                    <template x-if="(repair.parts || []).length > 0">
-                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                            <label class="block text-sm font-medium text-amber-800 mb-2 flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
-                                Parts Used (<span x-text="(repair.parts || []).length"></span>) — Total: <span x-text="'₹' + partsTotal().toFixed(2)"></span>
-                            </label>
-                            <div class="space-y-2">
-                                <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-amber-100 transition" :class="cancelForm.parts_action === 'return_stock' ? 'bg-amber-100 ring-1 ring-amber-400' : ''">
-                                    <input type="radio" x-model="cancelForm.parts_action" value="return_stock" class="text-amber-600">
-                                    <div>
-                                        <span class="text-sm font-medium text-gray-800">Return to stock</span>
-                                        <p class="text-xs text-gray-500">Parts are fine, add back to inventory. No loss.</p>
-                                    </div>
-                                </label>
-                                <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-amber-100 transition" :class="cancelForm.parts_action === 'write_off' ? 'bg-amber-100 ring-1 ring-amber-400' : ''">
-                                    <input type="radio" x-model="cancelForm.parts_action" value="write_off" class="text-amber-600">
-                                    <div>
-                                        <span class="text-sm font-medium text-gray-800">Write off as loss</span>
-                                        <p class="text-xs text-gray-500">Parts are damaged/used. Count as loss in expenses.</p>
-                                    </div>
-                                </label>
-                            </div>
+                        <div class="bg-red-50 rounded-lg p-3 mb-4 text-sm text-red-700">
+                            <p class="font-medium">This will cancel the repair and refund the advance payment.</p>
+                            <p class="mt-1 font-bold text-red-800">Amount to refund: ₹<span x-text="Number(repair.net_paid).toFixed(2)"></span></p>
                         </div>
-                    </template>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button @click="showCancelRefund = false" class="btn-secondary">Go Back</button>
-                <button @click="cancelWithRefund()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Cancel & Refund</button>
-            </div>
-        </div>
-    </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                                <textarea x-model="cancelForm.reason" class="form-input-custom" rows="2" placeholder="Why is this being cancelled?"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Refund Method</label>
+                                <select x-model="cancelForm.refund_method" class="form-select-custom w-full">
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Card</option>
+                                    <option value="upi">UPI</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                </select>
+                            </div>
+                            <!-- Parts handling -->
+                            <template x-if="(repair.parts || []).length > 0">
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                    <label class="block text-sm font-medium text-amber-800 mb-2 flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0"/></svg>
+                                        Parts Used (<span x-text="(repair.parts || []).length"></span>) — Total: ₹<span x-text="partsTotal().toFixed(2)"></span>
+                                    </label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-amber-100 transition" :class="cancelForm.parts_action === 'return_stock' ? 'bg-amber-100 ring-1 ring-amber-400' : ''">
+                                            <input type="radio" x-model="cancelForm.parts_action" value="return_stock" class="text-amber-600">
+                                            <div>
+                                                <span class="text-sm font-medium text-gray-800">Return to stock</span>
+                                                <p class="text-xs text-gray-500">Parts are fine, add back to inventory</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-amber-100 transition" :class="cancelForm.parts_action === 'write_off' ? 'bg-amber-100 ring-1 ring-amber-400' : ''">
+                                            <input type="radio" x-model="cancelForm.parts_action" value="write_off" class="text-amber-600">
+                                            <div>
+                                                <span class="text-sm font-medium text-gray-800">Write off as loss</span>
+                                                <p class="text-xs text-gray-500">Parts are damaged/used</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
 
-    <!-- ===== VOID MODAL ===== -->
-    <div x-show="showVoid" class="modal-overlay" x-cloak>
-        <div class="modal-container max-w-md" @click.away="showVoid = false">
-            <div class="modal-header">
-                <h3 class="text-lg font-bold text-red-700">Void Repair</h3>
-                <button @click="showVoid = false" class="text-gray-400 hover:text-gray-600">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="bg-red-50 rounded-lg p-3 mb-4 text-sm text-red-700">
-                    <p>This will mark the repair as <strong>void</strong> (mistake entry). It will be locked and excluded from all reports and revenue calculations.</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
-                    <textarea x-model="voidForm.reason" class="form-input-custom" rows="2" placeholder="Reason for voiding..."></textarea>
-                </div>
+                <!-- Direct Cancel/Void Flow (if no payment) -->
+                <template x-if="repair.net_paid <= 0">
+                    <div>
+                        <!-- Void for 'received' status -->
+                        <template x-if="repair.status === 'received'">
+                            <div>
+                                <div class="bg-red-50 rounded-lg p-3 mb-4 text-sm text-red-700">
+                                    <p><strong>Void Repair (Mistake Entry)</strong></p>
+                                    <p class="mt-2 text-xs">This will mark the repair as void and exclude it from all reports and revenue calculations. The record will be locked.</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                                    <textarea x-model="cancelForm.reason" class="form-input-custom" rows="2" placeholder="Why is this being voided?"></textarea>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Direct cancel for other statuses -->
+                        <template x-if="repair.status !== 'received'">
+                            <div>
+                                <div class="bg-red-50 rounded-lg p-3 mb-4 text-sm text-red-700">
+                                    <p class="font-medium">This will cancel the repair.</p>
+                                    <p class="mt-1 text-xs">No advance payment to refund.</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                                    <textarea x-model="cancelForm.reason" class="form-input-custom" rows="2" placeholder="Why is this being cancelled?"></textarea>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
             </div>
             <div class="modal-footer">
-                <button @click="showVoid = false" class="btn-secondary">Cancel</button>
-                <button @click="createVoid()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Void Repair</button>
+                <button @click="showCancel = false" class="btn-secondary">Go Back</button>
+                <button @click="handleCancel()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <span x-show="repair.net_paid > 0">Cancel & Refund</span>
+                    <span x-show="repair.net_paid <= 0 && repair.status === 'received'">Void Repair</span>
+                    <span x-show="repair.net_paid <= 0 && repair.status !== 'received'">Cancel Repair</span>
+                </button>
             </div>
         </div>
     </div>
@@ -822,7 +1000,6 @@
                     <svg class="w-12 h-12 text-emerald-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <p class="font-semibold text-emerald-800">Mark this repair as completed?</p>
                     <p class="text-sm text-emerald-600 mt-1">Once confirmed, you cannot change it back to in-progress.</p>
-                    <p class="text-sm text-emerald-600 mt-1">You can add service charges after marking as completed.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
@@ -856,8 +1033,7 @@ function repairDetail() {
         ],
 
         // Modals
-        showCancelRefund: false,
-        showVoid: false,
+        showCancel: false,
         showCompletedConfirm: false,
 
         // Status
@@ -875,15 +1051,12 @@ function repairDetail() {
         serviceChargeInput: '',
 
         // Services
-        svcForm: { service_type_id: null, service_type_name: '', vendor_id: null, _vendor_name: '', customer_charge: '', vendor_charge: '', status: 'pending', reference_no: '', description: '' },
+        svcForm: { service_type_id: null, service_type_name: '', vendor_id: null, _vendor_name: '', customer_charge: '', vendor_charge: '', reference_no: '', description: '' },
         svcTypeResults: [], svcTypeHasMore: false, svcTypePage: 1, svcTypeLoading: false,
         vendorSearch: '', vendorResults: [], vendorHasMore: false, vendorPage: 1, vendorLoading: false,
 
-        // Cancel form
+        // Cancel form (handles refund, void, and simple cancel)
         cancelForm: { reason: '', refund_method: 'cash', parts_action: 'return_stock' },
-
-        // Void form
-        voidForm: { reason: '' },
 
         init() {
             this.serviceChargeInput = this.repair.service_charge || '';
@@ -1062,13 +1235,12 @@ function repairDetail() {
                 vendor_id: this.svcForm.vendor_id,
                 customer_charge: this.svcForm.customer_charge,
                 vendor_charge: this.svcForm.vendor_charge || 0,
-                status: this.svcForm.status,
                 reference_no: this.svcForm.reference_no,
                 description: this.svcForm.description,
             });
             if (r.success !== false) {
                 RepairBox.toast('Service added', 'success');
-                this.svcForm = { service_type_id: null, service_type_name: '', vendor_id: null, _vendor_name: '', customer_charge: '', vendor_charge: '', status: 'pending', reference_no: '', description: '' };
+                this.svcForm = { service_type_id: null, service_type_name: '', vendor_id: null, _vendor_name: '', customer_charge: '', vendor_charge: '', reference_no: '', description: '' };
                 await this.reload();
             }
         },
@@ -1077,15 +1249,7 @@ function repairDetail() {
             const r = await RepairBox.ajax('/repairs/' + this.repair.id + '/services/' + serviceId, 'DELETE');
             if (r.success !== false) { RepairBox.toast('Service removed', 'success'); await this.reload(); }
         },
-        async toggleServicePayment(svc) {
-            const newStatus = svc.payment_status === 'completed' ? 'pending' : 'completed';
-            const r = await RepairBox.ajax('/repairs/' + this.repair.id + '/services/' + svc.id, 'PUT', { payment_status: newStatus });
-            if (r.success !== false) { RepairBox.toast('Payment status updated', 'success'); await this.reload(); }
-        },
-        async updateServiceStatus(svc, newStatus) {
-            const r = await RepairBox.ajax('/repairs/' + this.repair.id + '/services/' + svc.id, 'PUT', { status: newStatus });
-            if (r.success !== false) { RepairBox.toast('Service status updated', 'success'); await this.reload(); }
-        },
+
 
         // ===== SERVICE CHARGE =====
         async saveServiceCharge() {
@@ -1106,23 +1270,30 @@ function repairDetail() {
         },
 
         // ===== CANCEL WITH REFUND =====
-        async cancelWithRefund() {
+        // ===== UNIFIED CANCEL HANDLER =====
+        async handleCancel() {
             if (!this.cancelForm.reason) { RepairBox.toast('Please provide a reason', 'error'); return; }
-            const r = await RepairBox.ajax('/repairs/' + this.repair.id + '/cancel-refund', 'POST', this.cancelForm);
-            if (r.success !== false) {
-                RepairBox.toast('Repair cancelled with refund', 'success');
-                this.showCancelRefund = false;
-                await this.reload();
-            }
-        },
 
-        // ===== VOID =====
-        async createVoid() {
-            if (!this.voidForm.reason) { RepairBox.toast('Please provide a reason', 'error'); return; }
-            const r = await RepairBox.ajax('/repairs/' + this.repair.id + '/void', 'POST', this.voidForm);
+            let endpoint = '/repairs/' + this.repair.id + '/cancel';
+            let successMsg = 'Repair cancelled';
+            let payload = { reason: this.cancelForm.reason };
+
+            // If payment exists, it's a refund flow
+            if (this.repair.net_paid > 0) {
+                endpoint = '/repairs/' + this.repair.id + '/cancel-refund';
+                successMsg = 'Repair cancelled and refund processed';
+                payload = this.cancelForm; // includes refund_method and parts_action
+            }
+            // If received status with no payment, it's a void
+            else if (this.repair.status === 'received') {
+                endpoint = '/repairs/' + this.repair.id + '/void';
+                successMsg = 'Repair marked as void';
+            }
+
+            const r = await RepairBox.ajax(endpoint, 'POST', payload);
             if (r.success !== false) {
-                RepairBox.toast('Repair marked as void', 'success');
-                this.showVoid = false;
+                RepairBox.toast(successMsg, 'success');
+                this.showCancel = false;
                 await this.reload();
             }
         },
@@ -1144,8 +1315,16 @@ function repairDetail() {
         grandTotal() { return this.partsTotal() + Number(this.repair.service_charge || 0) + this.servicesTotal(); },
         totalPaid() { return (this.repair.payments || []).filter(p => p.direction === 'IN').reduce((s, p) => s + Number(p.amount), 0); },
         totalRefunded() { return (this.repair.payments || []).filter(p => p.direction === 'OUT').reduce((s, p) => s + Number(p.amount), 0); },
+        advancePaid() { return (this.repair.payments || []).filter(p => p.direction === 'IN' && p.payment_type === 'advance').reduce((s, p) => s + Number(p.amount), 0); },
+        finalPaid() { return (this.repair.payments || []).filter(p => p.direction === 'IN' && p.payment_type !== 'advance').reduce((s, p) => s + Number(p.amount), 0); },
         balanceDue() { return Math.max(0, this.grandTotal() - this.totalPaid() + this.totalRefunded()); },
     };
 }
 </script>
+<style>
+@keyframes paymentPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.5), 0 4px 14px rgba(52,211,153,0.3); }
+    50%       { box-shadow: 0 0 0 6px rgba(52,211,153,0),  0 4px 20px rgba(52,211,153,0.4); }
+}
+</style>
 @endpush

@@ -143,18 +143,8 @@ class RepairService
                 if ($partsAction === 'return_stock') {
                     // Return parts to inventory
                     foreach ($repair->parts as $repairPart) {
-                        if ($repairPart->part) {
-                            $inventory = \App\Models\Inventory::where('product_id', $repairPart->part_id)->first();
-                            if ($inventory) {
-                                $inventory->increment('current_stock', $repairPart->quantity);
-                            }
-
-                            \App\Models\StockMovement::create([
-                                'product_id' => $repairPart->part_id,
-                                'quantity' => $repairPart->quantity,
-                                'cost_price' => $repairPart->cost_price,
-                            ]);
-                        }
+                            // Note: In this system, Parts are distinct from Inventory Products.
+                            // We do not create StockMovements or update Inventory for Parts.
                     }
                     ActivityLog::log('update', 'repairs', $repair->id, "Parts returned to stock on cancellation");
                 } else {
